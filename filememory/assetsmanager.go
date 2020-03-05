@@ -41,7 +41,7 @@ func (this *WalletManager) CurveType() uint32 {
 
 //FullName 币种全名
 func (this *WalletManager) FullName() string {
-	return "Ethereum"
+	return "FileMemory"
 }
 
 //SymbolID 币种标识
