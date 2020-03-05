@@ -117,7 +117,7 @@ func (this *FMBlock) CreateOpenWalletBlockHeader() *openwallet.BlockHeader {
 
 func (this *FMBlock) Init() error {
 	var err error
-	this.BlockHeight, err = strconv.ParseUint(removeOxFromHex(this.BlockNumber), 16, 64) //ConvertToBigInt(this.BlockNumber, 16) //
+	this.BlockHeight, err = strconv.ParseUint(removeOxFromHex(this.BlockNumber), 10,64) //ConvertToBigInt(this.BlockNumber, 16) //
 	if err != nil {
 		log.Errorf("init blockheight failed, err=%v", err)
 		return err
@@ -340,18 +340,14 @@ func (this *Client) EthGetTransactionByHash(txid string) (*BlockTransaction, err
 	return &tx, nil
 }
 
-func (this *Client) fmGetBlockSpecByBlockNum2(blockNum string, showTransactionSpec bool) (*FMBlock, error) {
+func (this *Client) fmGetBlockSpecByBlockNum2(blockNum uint64, showTransactionSpec bool) (*FMBlock, error) {
 	//params := []interface{}{
 	//	blockNum,
 	//	showTransactionSpec,
 	//}
 	callTime := time.Now().Unix()
 	params := make(map[string]interface{})
-	num, err := strconv.Atoi(blockNum)
-	if err != nil {
-		return nil, err
-	}
-	params["number"] = num
+	params["number"] = blockNum
 	params["time"] = fmt.Sprintf("%d", callTime)
 	params["token"] = GenToken(callTime)
 	var fmBlock FMBlock
@@ -368,7 +364,7 @@ func (this *Client) fmGetBlockSpecByBlockNum2(blockNum string, showTransactionSp
 		return nil, err
 	}
 
-	fmBlock.BlockNumber = blockNum
+	fmBlock.BlockNumber = fmt.Sprintf("%d", blockNum)
 
 	err = fmBlock.Init()
 	if err != nil {
@@ -379,8 +375,7 @@ func (this *Client) fmGetBlockSpecByBlockNum2(blockNum string, showTransactionSp
 }
 
 func (this *Client) EthGetBlockSpecByBlockNum(blockNum uint64, showTransactionSpec bool) (*FMBlock, error) {
-	blockNumStr := "0x" + strconv.FormatUint(blockNum, 16)
-	return this.fmGetBlockSpecByBlockNum2(blockNumStr, showTransactionSpec)
+	return this.fmGetBlockSpecByBlockNum2(blockNum, showTransactionSpec)
 }
 
 func (this *Client) ethGetTxpoolStatus() (uint64, uint64, error) {
