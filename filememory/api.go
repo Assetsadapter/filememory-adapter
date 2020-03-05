@@ -860,7 +860,7 @@ func (this *Client) FMGetBlockNumber() (uint64, error) {
 		return 0, errors.New("result of block number type error")
 	}
 
-	blockNum, err := ConvertToUint64(num.String(), 16)
+	blockNum, err := ConvertToUint64(num.String(), 10)
 	if err != nil {
 		log.Errorf("parse block number to big.Int failed, err=%v", err)
 		return 0, err
