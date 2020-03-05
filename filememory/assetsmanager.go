@@ -51,5 +51,5 @@ func (this *WalletManager) Symbol() string {
 
 //小数位精度
 func (this *WalletManager) Decimal() int32 {
-	return 18
+	return 8
 }

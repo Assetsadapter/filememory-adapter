@@ -55,7 +55,7 @@ func TestGetBalance(t *testing.T) {
 		Debug:   true,
 	}
 
-	address := "FMf1740d2bd7a334d3fc53c61f87b02654537178f7"
+	address := "FMa8cc6864cbd7f7e06dc4405ce04bb27abb91403b"
 
 	if r, err := tw.GetAddrBalance2(address, "latest"); err != nil {
 		t.Errorf("GetBalance failed: %v\n", err)
