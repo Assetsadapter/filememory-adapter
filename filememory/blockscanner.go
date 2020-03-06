@@ -526,13 +526,13 @@ func (this *FMBLockScanner) GetBalanceByAddress(address ...string) ([]*openwalle
 			<-threadControl
 		}()
 
-		balanceConfirmed, err := this.wm.WalletClient.GetAddrBalance2(AppendOxToAddress(addr.Address), "latest")
+		balanceConfirmed, err := this.wm.WalletClient.GetAddrBalance2(AppendFMToAddress(addr.Address), "latest")
 		if err != nil {
 			this.wm.Log.Error("get address[", addr.Address, "] balance failed, err=", err)
 			return
 		}
 
-		balanceAll, err := this.wm.WalletClient.GetAddrBalance2(AppendOxToAddress(addr.Address), "pending")
+		balanceAll, err := this.wm.WalletClient.GetAddrBalance2(AppendFMToAddress(addr.Address), "pending")
 		if err != nil {
 			//this.wm.Log.Errorf("get address[%v] erc20 token balance failed, err=%v", address, err)
 			//return
@@ -976,26 +976,26 @@ func (this *FMBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractR
 	//	result.extractData[ToSourceKey] = toExtractDataList
 	//}
 
-	//isTokenTransfer := false
+	isTokenTransfer := false
 	//if len(tokenEvent) > 0 {
 	//	isTokenTransfer = true
 	//}
 
 	//提出主币交易单
-	//extractData, err := this.extractETHTransaction(tx, isTokenTransfer)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//for sourceKey, data := range extractData {
-	//	extractDataArray := result.extractData[sourceKey]
-	//	if extractDataArray == nil {
-	//		extractDataArray = make([]*openwallet.TxExtractData, 0)
-	//	}
-	//	extractDataArray = append(extractDataArray, data)
-	//	result.extractData[sourceKey] = extractDataArray
-	//}
+	extractData, err := this.extractETHTransaction(tx, isTokenTransfer)
+	if err != nil {
+		return nil, err
+	}
+	for sourceKey, data := range extractData {
+		extractDataArray := result.extractData[sourceKey]
+		if extractDataArray == nil {
+			extractDataArray = make([]*openwallet.TxExtractData, 0)
+		}
+		extractDataArray = append(extractDataArray, data)
+		result.extractData[sourceKey] = extractDataArray
+	}
 
-	//提取代币交易单
+	////提取代币交易单
 	//for contractAddress, tokenEventArray := range tokenEvent {
 	//	//提出主币交易单
 	//	extractERC20Data, err := this.extractERC20Transaction(tx, contractAddress, tokenEventArray)

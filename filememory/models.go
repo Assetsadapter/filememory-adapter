@@ -213,7 +213,7 @@ type BlockTransaction struct {
 }
 
 func (this *BlockTransaction) GetAmountEthString() (string, error) {
-	amount, err := ConvertToBigInt(this.Value, 16)
+	amount, err := ConvertToBigInt(this.Value, 10)
 	if err != nil {
 		log.Errorf("convert amount to big.int failed, err= %v", err)
 		return "0", err
@@ -385,12 +385,12 @@ func (this *Wallet) DeleteTransactionByHeight(dbPath string, height uint64) erro
 
 	var txs []BlockTransaction
 
-	err = db.Find("BlockNumber", "0x"+strconv.FormatUint(height, 16), &txs)
+	err = db.Find("BlockNumber", "0x"+strconv.FormatUint(height, 10), &txs)
 	if err != nil && err != storm.ErrNotFound {
-		log.Errorf("get transactions from block[%v] failed, err=%v", "0x"+strconv.FormatUint(height, 16), err)
+		log.Errorf("get transactions from block[%v] failed, err=%v", "0x"+strconv.FormatUint(height, 10), err)
 		return err
 	} else if err == storm.ErrNotFound {
-		log.Infof("no transactions found in block[%v] ", "0x"+strconv.FormatUint(height, 16))
+		log.Infof("no transactions found in block[%v] ", "0x"+strconv.FormatUint(height, 10))
 		return nil
 	}
 

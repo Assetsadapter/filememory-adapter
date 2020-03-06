@@ -399,7 +399,7 @@ func (this *WalletManager) exportAddressToFile(addrs []*Address, filePath string
 
 	for _, a := range addrs {
 		//log.Std.Info("Export: %s ", a.Address)
-		content = content + AppendOxToAddress(a.Address) + "\n"
+		content = content + AppendFMToAddress(a.Address) + "\n"
 	}
 
 	file.MkdirAll(this.GetConfig().AddressDir)
@@ -679,23 +679,10 @@ func (this *Client) ethGetGasPrice() (*big.Int, error) {
 }
 
 func (this *WalletManager) GetNonceForAddress2(address string) (uint64, error) {
-	address = AppendOxToAddress(address)
-	//txpool, err := this.WalletClient.EthGetTxPoolContent()
-	//if err != nil {
-	//	this.Log.Errorf("EthGetTxPoolContent failed, err = %v", err)
-	//	return 0, err
-	//}
-	//
-	//_, max, count, err := txpool.GetSequentTxNonce(address)
-	//if err != nil {
-	//	log.Error("get txpool sequent tx nonce failed, err=%v", err)
-	//	return 0, err
-	//}
-	//log.Debugf("sequent max nonce:%v", max)
-	//log.Debugf("sequent nonce count:%v", count)
-	txCount, err := this.WalletClient.ethGetTransactionCount(address)
+	address = AppendFMToAddress(address)
+	txCount, err := this.WalletClient.fmGetTransactionCount(address)
 	if err != nil {
-		log.Error("ethGetTransactionCount failed, err=", err)
+		log.Error("fmGetTransactionCount failed, err=", err)
 		return 0, err
 	}
 	log.Debugf("txCount:%v", txCount)
@@ -727,9 +714,9 @@ func (this *WalletManager) GetNonceForAddress(address string) (uint64, error) {
 		this.Log.Infof("address[%v] has %v tx in pending queue of txpool.", address, txCount)
 	}
 
-	nonce, err := this.WalletClient.ethGetTransactionCount(address)
+	nonce, err := this.WalletClient.fmGetTransactionCount(address)
 	if err != nil {
-		this.Log.Errorf("ethGetTransactionCount failed, err=%v", err)
+		this.Log.Errorf("fmGetTransactionCount failed, err=%v", err)
 		return 0, err
 	}
 	return nonce, nil

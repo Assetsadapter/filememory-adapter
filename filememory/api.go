@@ -52,49 +52,6 @@ type Response struct {
 	Result  interface{} `json:"result"`
 }
 
-/*
-1. eth block example
-   "result": {
-        "difficulty": "0x1a4f1f",
-        "extraData": "0xd98301080d846765746888676f312e31302e338664617277696e",
-        "gasLimit": "0x47e7c4",
-        "gasUsed": "0x5b61",
-        "hash": "0x85319757555e1cf069684dde286e3c34331dc27d2e54bed24e7291f1b84a0cc5",
-        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-        "miner": "0x50068fd632c1a6e6c5bd407b4ccf8861a589e776",
-        "mixHash": "0xb0cb0abb00c3fc77014abb2a520e3d2a14047cfa30a3b954f18fbeefd1a92f7b",
-        "nonce": "0x4df323f58b7a7fd0",
-        "number": "0x169cf",
-        "parentHash": "0x3df7035473ec98c8c18d2785d5a345193a32b95fcf1ac2d3f09a93109feed3bc",
-        "receiptsRoot": "0x441a5be885777bfdf0e985a8ef5046316b3384dd49db7ef95b2c546611c1e2fc",
-        "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-        "size": "0x2aa",
-        "stateRoot": "0xb0d76a848be723c72c9639b2de591320f4456b665354995be08a8fa83897efbb",
-        "timestamp": "0x5b7babbe",
-        "totalDifficulty": "0x2a844e200a",
-        "transactions": [
-            {
-                "blockHash": "0x85319757555e1cf069684dde286e3c34331dc27d2e54bed24e7291f1b84a0cc5",
-                "blockNumber": "0x169cf",
-                "from": "0x50068fd632c1a6e6c5bd407b4ccf8861a589e776",
-                "gas": "0x15f90",
-                "gasPrice": "0x430e23400",
-                "hash": "0x925e33ac3ebaf40bb44a843860b6589ea2df78c955a27f9df16edcf789519671",
-                "input": "0x70a082310000000000000000000000002a63b2203955b84fefe52baca3881b3614991b34",
-                "nonce": "0x45",
-                "to": "0x8847e5f841458ace82dbb0692c97115799fe28d3",
-                "transactionIndex": "0x0",
-                "value": "0x0",
-                "v": "0x3c",
-                "r": "0x8d2ffbe7cb7ac1159a999dfa4352fa27f5cce0df8755254393838aab229ecd33",
-                "s": "0xe8ed1f7f8de902ccb008824fe39b2903b94f89e3ea0d5b9f9b880c302bae6cf"
-            }
-        ],
-        "transactionsRoot": "0xa8cb62696679bc3d72762bd2aa5842fdd8aed9c9691fe82064c13e854c13d5cb",
-        "uncles": []
-    }
-*/
-
 //type FMBlock struct {
 //	BlockHeader
 //	Transactions []BlockTransaction `json:"transactions"`
@@ -117,7 +74,7 @@ func (this *FMBlock) CreateOpenWalletBlockHeader() *openwallet.BlockHeader {
 
 func (this *FMBlock) Init() error {
 	var err error
-	this.BlockHeight, err = strconv.ParseUint(removeOxFromHex(this.BlockNumber), 10,64) //ConvertToBigInt(this.BlockNumber, 16) //
+	this.BlockHeight, err = strconv.ParseUint(removeOxFromHex(this.BlockNumber), 10, 64) //ConvertToBigInt(this.BlockNumber, 16) //
 	if err != nil {
 		log.Errorf("init blockheight failed, err=%v", err)
 		return err
@@ -193,28 +150,20 @@ func (this *TxpoolContent) GetPendingTxCountForAddr(addr string) int {
 	return len(txpool[addr])
 }
 
-func (this *Client) ethGetTransactionCount(addr string) (uint64, error) {
-	params := []interface{}{
-		AppendOxToAddress(addr),
-		"pending",
-	}
+func (this *Client) fmGetTransactionCount(addr string) (uint64, error) {
+	callTime := time.Now().Unix()
+	params := make(map[string]interface{})
+	params["address"] = AppendFMToAddress(addr)
+	params["time"] = fmt.Sprintf("%d", callTime)
+	params["token"] = GenToken(callTime)
 
-	result, err := this.Call("eth_getTransactionCount", 1, params)
+	result, err := this.FMCall("getnonce", params)
 	if err != nil {
-		//errInfo := fmt.Sprintf("get block[%v] failed, err = %v \n", blockNumStr,  err)
 		log.Errorf("get transaction count failed, err = %v \n", err)
 		return 0, err
 	}
 
-	if result.Type != gjson.String {
-		log.Errorf("result type failed. ")
-		return 0, errors.New("result type failed. ")
-	}
-
-	//blockNum, err := ConvertToBigInt(result.String(), 16)
-	nonceStr := result.String()
-	nonceStr = strings.ToLower(nonceStr)
-	nonceStr = removeOxFromHex(nonceStr)
+	nonceStr := result.Get("nonce").String()
 	nonce, err := strconv.ParseUint(nonceStr, 16, 64)
 	if err != nil {
 		log.Errorf("parse nounce failed, err=%v", err)
@@ -313,7 +262,7 @@ func (this *Client) ethGetBlockSpecByHash(blockHash string, showTransactionSpec 
 
 func (this *Client) EthGetTransactionByHash(txid string) (*BlockTransaction, error) {
 	params := []interface{}{
-		AppendOxToAddress(txid),
+		AppendFMToAddress(txid),
 	}
 
 	var tx BlockTransaction
@@ -321,12 +270,12 @@ func (this *Client) EthGetTransactionByHash(txid string) (*BlockTransaction, err
 	result, err := this.Call("eth_getTransactionByHash", 1, params)
 	if err != nil {
 		//errInfo := fmt.Sprintf("get block[%v] failed, err = %v \n", blockNumStr,  err)
-		log.Errorf("get transaction[%v] failed, err = %v \n", AppendOxToAddress(txid), err)
+		log.Errorf("get transaction[%v] failed, err = %v \n", AppendFMToAddress(txid), err)
 		return nil, err
 	}
 
 	if result.Type != gjson.JSON {
-		errInfo := fmt.Sprintf("get transaction[%v] result type failed, result type is %v", AppendOxToAddress(txid), result.Type)
+		errInfo := fmt.Sprintf("get transaction[%v] result type failed, result type is %v", AppendFMToAddress(txid), result.Type)
 		log.Errorf(errInfo)
 		return nil, errors.New(errInfo)
 	}
@@ -514,7 +463,7 @@ func (this *Client) GetAddrBalance2(address string, sign string) (*big.Int, erro
 
 	params := make(map[string]interface{})
 	callTime := time.Now().Unix()
-	params["address"] = AppendOxToAddress(address)
+	params["address"] = AppendFMToAddress(address)
 	params["time"] = fmt.Sprintf("%d", callTime)
 	params["token"] = GenToken(callTime)
 
@@ -539,7 +488,14 @@ func (this *Client) GetAddrBalance2(address string, sign string) (*big.Int, erro
 	return balance, nil
 }
 
-func AppendOxToAddress(addr string) string {
+func Append0xToAddress(addr string) string {
+	if strings.Index(addr, "0x") == -1 {
+		return "0x" + addr
+	}
+	return addr
+}
+
+func AppendFMToAddress(addr string) string {
 	if strings.Index(addr, "FM") == -1 {
 		return "FM" + addr
 	}
@@ -552,8 +508,8 @@ func makeSimpleTransactionPara(fromAddr *Address, toAddr string, amount *big.Int
 	//use password to unlock the account
 	paraMap["password"] = password
 	//use the following attr to eth_sendTransaction
-	paraMap["from"] = AppendOxToAddress(fromAddr.Address)
-	paraMap["to"] = AppendOxToAddress(toAddr)
+	paraMap["from"] = AppendFMToAddress(fromAddr.Address)
+	paraMap["to"] = AppendFMToAddress(toAddr)
 	paraMap["value"] = "0x" + amount.Text(16)
 	paraMap["gas"] = "0x" + fee.GasLimit.Text(16)
 	paraMap["gasPrice"] = "0x" + fee.GasPrice.Text(16)
@@ -563,8 +519,8 @@ func makeSimpleTransactionPara(fromAddr *Address, toAddr string, amount *big.Int
 func makeSimpleTransactiomnPara2(fromAddr string, toAddr string, amount *big.Int, password string) map[string]interface{} {
 	paraMap := make(map[string]interface{})
 	paraMap["password"] = password
-	paraMap["from"] = AppendOxToAddress(fromAddr)
-	paraMap["to"] = AppendOxToAddress(toAddr)
+	paraMap["from"] = AppendFMToAddress(fromAddr)
+	paraMap["to"] = AppendFMToAddress(toAddr)
 	paraMap["value"] = "0x" + amount.Text(16)
 	return paraMap
 }
@@ -601,8 +557,8 @@ func makeERC20TokenTransData(contractAddr string, toAddr string, amount *big.Int
 
 func makeGasEstimatePara(fromAddr string, toAddr string, value *big.Int, data string) map[string]interface{} {
 	paraMap := make(map[string]interface{})
-	paraMap["from"] = AppendOxToAddress(fromAddr)
-	paraMap["to"] = AppendOxToAddress(toAddr)
+	paraMap["from"] = Append0xToAddress(fromAddr)
+	paraMap["to"] = Append0xToAddress(toAddr)
 	if data != "" {
 		paraMap["data"] = data
 	}
@@ -694,8 +650,8 @@ func makeERC20TokenTransactionPara(fromAddr *Address, contractAddr string, data 
 	//use password to unlock the account
 	paraMap["password"] = password
 	//use the following attr to eth_sendTransaction
-	paraMap["from"] = AppendOxToAddress(fromAddr.Address)
-	paraMap["to"] = AppendOxToAddress(contractAddr)
+	paraMap["from"] = AppendFMToAddress(fromAddr.Address)
+	paraMap["to"] = AppendFMToAddress(contractAddr)
 	//paraMap["value"] = "0x" + amount.Text(16)
 	paraMap["gas"] = "0x" + fee.GasLimit.Text(16)
 	paraMap["gasPrice"] = "0x" + fee.GasPrice.Text(16)

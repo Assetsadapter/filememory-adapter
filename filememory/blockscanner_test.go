@@ -51,3 +51,14 @@ func TestWalletManager_EthGetBlockNumber(t *testing.T) {
 	}
 	log.Infof("maxBlockHeight: %v", maxBlockHeight)
 }
+
+func TestWalletManager_ScannerBlock(t *testing.T) {
+	wm := testNewWalletManager()
+	blockHeight := uint64(1278460)
+	err := wm.GetBlockScanner().ScanBlock(blockHeight)
+	if err != nil {
+		t.Errorf("FMScannerBlock fialed, err=%v", err)
+		return
+	}
+	log.Infof("FMScannerBlock success, %d", blockHeight)
+}
