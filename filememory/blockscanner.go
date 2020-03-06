@@ -547,20 +547,20 @@ func (this *FMBLockScanner) GetBalanceByAddress(address ...string) ([]*openwalle
 			Symbol:  this.wm.Symbol(),
 			Address: addr.Address,
 		}
-		confirmed, err := ConverWeiStringToEthDecimal(balanceConfirmed.String())
+		confirmed, err := ConverFmStringToFMDecimal(balanceConfirmed.String())
 		if err != nil {
-			this.wm.Log.Errorf("ConverWeiStringToEthDecimal confirmed balance failed, err=%v", err)
+			this.wm.Log.Errorf("ConverFmStringToFMDecimal confirmed balance failed, err=%v", err)
 			return
 		}
-		all, err := ConverWeiStringToEthDecimal(balanceAll.String())
+		all, err := ConverFmStringToFMDecimal(balanceAll.String())
 		if err != nil {
-			this.wm.Log.Errorf("ConverWeiStringToEthDecimal all balance failed, err=%v", err)
+			this.wm.Log.Errorf("ConverFmStringToFMDecimal all balance failed, err=%v", err)
 			return
 		}
 
-		unconfirmed, err := ConverWeiStringToEthDecimal(balanceUnconfirmed.String())
+		unconfirmed, err := ConverFmStringToFMDecimal(balanceUnconfirmed.String())
 		if err != nil {
-			this.wm.Log.Errorf("ConverWeiStringToEthDecimal unconfirmed balance failed, err=%v", err)
+			this.wm.Log.Errorf("ConverFmStringToFMDecimal unconfirmed balance failed, err=%v", err)
 			return
 		}
 

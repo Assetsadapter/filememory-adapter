@@ -218,7 +218,7 @@ func (this *BlockTransaction) GetAmountEthString() (string, error) {
 		log.Errorf("convert amount to big.int failed, err= %v", err)
 		return "0", err
 	}
-	amountVal, err := ConverWeiStringToEthDecimal(amount.String())
+	amountVal, err := ConverFmStringToFMDecimal(amount.String())
 	if err != nil {
 		log.Errorf("convert tx.Amount to eth decimal failed, err=%v", err)
 		return "0", err
@@ -240,7 +240,7 @@ func (this *BlockTransaction) GetAmountEthString() (string, error) {
 //	}
 //	fee := big.NewInt(0)
 //	fee.Mul(gasPrice, gas)
-//	feeprice, err := ConverWeiStringToEthDecimal(fee.String())
+//	feeprice, err := ConverFmStringToFMDecimal(fee.String())
 //	if err != nil {
 //		log.Errorf("convert fee failed, err=%v", err)
 //		return "", err
