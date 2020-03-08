@@ -657,7 +657,7 @@ func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.
 			return errors.New("encode tx to rlp failed. ")
 		}
 
-		txid, err := this.wm.WalletClient.ethSendRawTransaction(fmcommon.ToHex(rawTxPara))
+		txid, err := this.wm.WalletClient.fmSendRawTransaction(fmcommon.ToHex(rawTxPara))
 		if err != nil {
 			this.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
 			return openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
@@ -805,7 +805,7 @@ func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwal
 			return errors.New("encode tx to rlp failed. ")
 		}
 
-		txid, err := this.wm.WalletClient.ethSendRawTransaction(fmcommon.ToHex(rawTxPara))
+		txid, err := this.wm.WalletClient.fmSendRawTransaction(fmcommon.ToHex(rawTxPara))
 		if err != nil {
 			this.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
 			return openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
@@ -1277,8 +1277,8 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 		accountTotalSent = accountTotalSent.Add(amountDec)
 	}
 
-	txFrom = []string{fmt.Sprintf("%s:%s", Append0xToAddress(addrBalance.Address), amountStr)}
-	txTo = []string{fmt.Sprintf("%s:%s", Append0xToAddress(destination), amountStr)}
+	txFrom = []string{fmt.Sprintf("%s:%s", CreateTxReplaceFmTo0x(addrBalance.Address), amountStr)}
+	txTo = []string{fmt.Sprintf("%s:%s", CreateTxReplaceFmTo0x(destination), amountStr)}
 
 	gasLimitStr, err := ConverFmStringToFMDecimal(fee.GasLimit.String())
 	if err != nil {
@@ -1363,7 +1363,7 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 			//return openwallet.Errorf("the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
 		}
 
-		tx = types.NewTransaction(nonce, fmcommon.HexToAddress(destination),
+		tx = types.NewTransaction(nonce, fmcommon.HexToAddress(CreateTxReplaceFmTo0x(destination)),
 			amount, gasLimit, fee.GasPrice, []byte(""))
 	}
 

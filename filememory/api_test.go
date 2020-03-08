@@ -84,3 +84,9 @@ func TestGenToken(t *testing.T) {
 	fmt.Println(now)
 	fmt.Println(GenToken(now))
 }
+
+func TestCreateTxReplaceFmTo0x(t *testing.T) {
+	addr := "FMd6cc76c51c218c286c783d98e42860afa07bdc70"
+	result := CreateTxReplaceFmTo0x(addr)
+	fmt.Printf("address is : %s", result)
+}

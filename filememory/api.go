@@ -495,6 +495,16 @@ func Append0xToAddress(addr string) string {
 	return addr
 }
 
+func CreateTxReplaceFmTo0x(addr string) string {
+	if addr[:2] == "FM" {
+		return "0x" + addr[2:]
+	}
+	if strings.Index(addr, "0x") == -1 {
+		return "0x" + addr
+	}
+	return addr
+}
+
 func AppendFMToAddress(addr string) string {
 	if strings.Index(addr, "FM") == -1 {
 		return "FM" + addr
@@ -699,15 +709,18 @@ func (this *WalletManager) SendTransactionToAddr(param map[string]interface{}) (
 }
 
 func (this *WalletManager) EthSendRawTransaction(signedTx string) (string, error) {
-	return this.WalletClient.ethSendRawTransaction(signedTx)
+	return this.WalletClient.fmSendRawTransaction(signedTx)
 }
 
-func (this *Client) ethSendRawTransaction(signedTx string) (string, error) {
-	params := []interface{}{
-		signedTx,
-	}
+func (this *Client) fmSendRawTransaction(signedTx string) (string, error) {
+	callTime := time.Now().Unix()
+	params := make(map[string]interface{})
+	params["signed"] = signedTx
+	params["notify"] = "https://www.demo.com/transfer/notify"
+	params["time"] = fmt.Sprintf("%d", callTime)
+	params["token"] = GenToken(callTime)
 
-	result, err := this.Call("eth_sendRawTransaction", 1, params)
+	result, err := this.FMCall("pushtx", params)
 	if err != nil {
 		log.Errorf(fmt.Sprintf("start raw transaction faield, err = %v \n", err))
 		return "", err

@@ -463,26 +463,27 @@ func (this *txFeeInfo) CalcFee() error {
 func (this *WalletManager) GetTransactionFeeEstimated(from string, to string, value *big.Int, data string) (*txFeeInfo, error) {
 
 	var (
-		gasLimit *big.Int
-		err      error
+		gasLimit, gasPrice = big.NewInt(0), big.NewInt(18)
 	)
-	if this.Config.FixGasLimit.Cmp(big.NewInt(0)) > 0 {
-		//配置设置固定gasLimit
-		gasLimit = this.Config.FixGasLimit
-	} else {
-		//动态计算gas消耗
-		gasLimit, err = this.WalletClient.ethGetGasEstimated(makeGasEstimatePara(from, to, value, data))
-		if err != nil {
-			this.Log.Errorf(fmt.Sprintf("get gas limit failed, err = %v\n", err))
-			return nil, err
-		}
-	}
+	//if this.Config.FixGasLimit.Cmp(big.NewInt(0)) > 0 {
+	//	//配置设置固定gasLimit
+	//	gasLimit = this.Config.FixGasLimit
+	//} else {
+	//	//动态计算gas消耗
+	//	gasLimit, err = this.WalletClient.ethGetGasEstimated(makeGasEstimatePara(from, to, value, data))
+	//	if err != nil {
+	//		this.Log.Errorf(fmt.Sprintf("get gas limit failed, err = %v\n", err))
+	//		return nil, err
+	//	}
+	//}
 
-	gasPrice, err := this.WalletClient.ethGetGasPrice()
-	if err != nil {
-		this.Log.Errorf(fmt.Sprintf("get gas price failed, err = %v\n", err))
-		return nil, err
-	}
+	//gasPrice, err := this.WalletClient.ethGetGasPrice()
+	//if err != nil {
+	//	this.Log.Errorf(fmt.Sprintf("get gas price failed, err = %v\n", err))
+	//	return nil, err
+	//}
+
+	gasLimit = this.Config.FixGasLimit
 
 	//	fee := new(big.Int)
 	//	fee.Mul(gasLimit, gasPrice)
