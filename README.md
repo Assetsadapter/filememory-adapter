@@ -13,16 +13,12 @@ openwtester包下的测试用例已经集成了openwallet钱包体系，创建co
 
 ```ini
 
-#wallet api url
-ServerAPI = "http://127.0.0.1:10001"
-
-#block chain ID
+isScan = true
+isFixFee = false
+ServerAPI = https://chain.com/
 ChainID = 1
+GasLimit = 500000
+GasPrice = 18
 
-# fix gas limit
-fixGasLimit = ""
-
-# Cache data file directory, default = "", current directory: ./data
-dataDir = ""
 
 ```
