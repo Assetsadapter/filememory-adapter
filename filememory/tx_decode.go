@@ -33,7 +33,7 @@ import (
 
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/openwallet"
-	fmcommon "github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -78,14 +78,14 @@ func (this *AddressTxStatistic) UpdateTime() {
 	this.LastModifiedTime = &now
 }
 
-type FMTransactionDecoder struct {
+type EthTransactionDecoder struct {
 	openwallet.TransactionDecoderBase
 	AddrTxStatisMap *sync.Map
 	//	DecoderLocker *sync.Mutex    //保护一些全局不可并发的操作, 如对AddrTxStatisMap的初始化
 	wm *WalletManager //钱包管理者
 }
 
-func (this *FMTransactionDecoder) GetTransactionCount2(address string) (*AddressTxStatistic, uint64, error) {
+func (this *EthTransactionDecoder) GetTransactionCount2(address string) (*AddressTxStatistic, uint64, error) {
 	now := time.Now()
 	valid := 1
 	t := AddressTxStatistic{
@@ -108,7 +108,7 @@ func (this *FMTransactionDecoder) GetTransactionCount2(address string) (*Address
 		txStatis.UpdateTime()
 		return &txStatis, *txStatis.TransactionCount, nil
 	}
-	nonce, err := this.wm.GetNonceForAddress2(AppendFMToAddress(address))
+	nonce, err := this.wm.GetNonceForAddress2(address)
 	if err != nil {
 		this.wm.Log.Std.Error("get nonce for address via rpc failed, err=%v", err)
 		return nil, 0, err
@@ -117,7 +117,7 @@ func (this *FMTransactionDecoder) GetTransactionCount2(address string) (*Address
 	return &txStatis, *txStatis.TransactionCount, nil
 }
 
-func (this *FMTransactionDecoder) GetTransactionCount(address string) (uint64, error) {
+func (this *EthTransactionDecoder) GetTransactionCount(address string) (uint64, error) {
 	if this.AddrTxStatisMap == nil {
 		return 0, errors.New("map should be initialized before using.")
 	}
@@ -131,7 +131,7 @@ func (this *FMTransactionDecoder) GetTransactionCount(address string) (uint64, e
 	return *txStatis.TransactionCount, nil
 }
 
-func (this *FMTransactionDecoder) SetTransactionCount(address string, transactionCount uint64) error {
+func (this *EthTransactionDecoder) SetTransactionCount(address string, transactionCount uint64) error {
 	if this.AddrTxStatisMap == nil {
 		return errors.New("map should be initialized before using.")
 	}
@@ -161,7 +161,7 @@ func (this *FMTransactionDecoder) SetTransactionCount(address string, transactio
 	return nil
 }
 
-func (this *FMTransactionDecoder) RemoveOutdatedAddrStatic() {
+func (this *EthTransactionDecoder) RemoveOutdatedAddrStatic() {
 	addrStatisList := make([]AddressTxStatistic, 0)
 	this.AddrTxStatisMap.Range(func(k, v interface{}) bool {
 		addrStatis := v.(AddressTxStatistic)
@@ -185,7 +185,7 @@ func (this *FMTransactionDecoder) RemoveOutdatedAddrStatic() {
 	}
 }
 
-func (this *FMTransactionDecoder) RunClearAddrStatic() {
+func (this *EthTransactionDecoder) RunClearAddrStatic() {
 	go func() {
 		for {
 			time.Sleep(5 * time.Minute)
@@ -194,14 +194,14 @@ func (this *FMTransactionDecoder) RunClearAddrStatic() {
 	}()
 }
 
-func (this *FMTransactionDecoder) GetRawTransactionFeeRate() (feeRate string, unit string, err error) {
+func (this *EthTransactionDecoder) GetRawTransactionFeeRate() (feeRate string, unit string, err error) {
 	price, err := this.wm.WalletClient.ethGetGasPrice()
 	if err != nil {
 		this.wm.Log.Errorf("get gas price failed, err=%v", err)
 		return "", "Gas", err
 	}
 
-	pricedecimal, err := ConverFmStringToFMDecimal(price.String())
+	pricedecimal, err := ConverWeiStringToEthDecimal(price.String())
 	if err != nil {
 		this.wm.Log.Errorf("wrong gas price format.")
 	}
@@ -218,8 +218,8 @@ func VerifyRawTransaction(rawTx *openwallet.RawTransaction) error {
 }
 
 //NewTransactionDecoder 交易单解析器
-func NewTransactionDecoder(wm *WalletManager) *FMTransactionDecoder {
-	decoder := FMTransactionDecoder{}
+func NewTransactionDecoder(wm *WalletManager) *EthTransactionDecoder {
+	decoder := EthTransactionDecoder{}
 	//	decoder.DecoderLocker = new(sync.Mutex)
 	decoder.wm = wm
 	decoder.AddrTxStatisMap = new(sync.Map)
@@ -227,7 +227,7 @@ func NewTransactionDecoder(wm *WalletManager) *FMTransactionDecoder {
 	return &decoder
 }
 
-func (this *FMTransactionDecoder) CreateSimpleRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction, tmpNonce *uint64) error {
+func (this *EthTransactionDecoder) CreateSimpleRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction, tmpNonce *uint64) error {
 
 	var (
 		accountID       = rawTx.Account.AccountID
@@ -269,7 +269,7 @@ func (this *FMTransactionDecoder) CreateSimpleRawTransaction(wrapper openwallet.
 		break
 	}
 
-	amount, _ := ConvertFMStringToWei(amountStr)
+	amount, _ := ConvertEthStringToWei(amountStr)
 
 	//地址余额从大到小排序
 	sort.Slice(addrBalanceArray, func(i int, j int) bool {
@@ -285,7 +285,7 @@ func (this *FMTransactionDecoder) CreateSimpleRawTransaction(wrapper openwallet.
 	for _, addrBalance := range addrBalanceArray {
 
 		//检查余额是否超过最低转账
-		addrBalance_BI, _ := ConvertFMStringToWei(addrBalance.Balance)
+		addrBalance_BI, _ := ConvertEthStringToWei(addrBalance.Balance)
 
 		//计算手续费
 		feeInfo, err = this.wm.GetTransactionFeeEstimated(addrBalance.Address, to, amount, "")
@@ -295,17 +295,17 @@ func (this *FMTransactionDecoder) CreateSimpleRawTransaction(wrapper openwallet.
 		}
 
 		if rawTx.FeeRate != "" {
-			feeInfo.GasPrice, _ = ConvertFMStringToWei(rawTx.FeeRate)
+			feeInfo.GasPrice, _ = ConvertEthStringToWei(rawTx.FeeRate)
 			feeInfo.CalcFee()
 		}
 
 		//总消耗数量 = 转账数量 + 手续费
-		totalAmount := new(big.Int)
-		totalAmount.Add(amount, feeInfo.Fee)
-
-		if addrBalance_BI.Cmp(totalAmount) < 0 {
-			continue
-		}
+		//totalAmount := new(big.Int)
+		//totalAmount.Add(amount, feeInfo.Fee)
+		//
+		//if addrBalance_BI.Cmp(totalAmount) < 0 {
+		//	continue
+		//}
 
 		//只要找到一个合适使用的地址余额就停止遍历
 		findAddrBalance = &AddrBalance{Address: addrBalance.Address, Balance: addrBalance_BI}
@@ -331,7 +331,7 @@ func (this *FMTransactionDecoder) CreateSimpleRawTransaction(wrapper openwallet.
 	return nil
 }
 
-func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (this *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	var (
 		accountID       = rawTx.Account.AccountID
@@ -342,8 +342,8 @@ func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwal
 		callData        string
 	)
 
-	tokenDecimals := int(rawTx.Coin.Contract.Decimals)
-	contractAddress := rawTx.Coin.Contract.Address
+	tokenDecimals := Decimal
+	contractAddress := CONTRACT_ADDRESS
 
 	//check交易交易单基本字段
 	err := VerifyRawTransaction(rawTx)
@@ -368,7 +368,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwal
 		searchAddrs = append(searchAddrs, address.Address)
 	}
 
-	addrBalanceArray, err := this.wm.ContractDecoder.GetTokenBalanceByAddress(rawTx.Coin.Contract, searchAddrs...)
+	addrBalanceArray, err := this.wm.Blockscanner.GetBalanceByAddress(searchAddrs...)
 	if err != nil {
 		return openwallet.NewError(openwallet.ErrCallFullNodeAPIFailed, err.Error())
 	}
@@ -382,8 +382,8 @@ func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwal
 
 	//地址余额从大到小排序
 	sort.Slice(addrBalanceArray, func(i int, j int) bool {
-		a_amount, _ := decimal.NewFromString(addrBalanceArray[i].Balance.Balance)
-		b_amount, _ := decimal.NewFromString(addrBalanceArray[j].Balance.Balance)
+		a_amount, _ := decimal.NewFromString(addrBalanceArray[i].Balance)
+		b_amount, _ := decimal.NewFromString(addrBalanceArray[j].Balance)
 		if a_amount.LessThan(b_amount) {
 			return true
 		} else {
@@ -398,7 +398,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwal
 		callData = ""
 
 		//检查余额是否超过最低转账
-		addrBalance_BI, _ := ConvertFloatStringToBigInt(addrBalance.Balance.Balance, tokenDecimals)
+		addrBalance_BI, _ := ConvertFloatStringToBigInt(addrBalance.Balance, tokenDecimals)
 
 		amount, _ := ConvertFloatStringToBigInt(amountStr, tokenDecimals)
 
@@ -415,31 +415,31 @@ func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwal
 
 		//this.wm.Log.Debug("sumAmount:", sumAmount)
 		//计算手续费
-		fee, createErr := this.wm.GetTransactionFeeEstimated(addrBalance.Balance.Address, contractAddress, nil, data)
+		fee, createErr := this.wm.GetTransactionFeeEstimated(addrBalance.Address, contractAddress, nil, data)
 		if createErr != nil {
-			this.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, to, createErr)
+			this.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Address, to, createErr)
 			return createErr
 		}
 
 		if rawTx.FeeRate != "" {
-			fee.GasPrice, _ = ConvertFMStringToWei(rawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
+			fee.GasPrice, _ = ConvertEthStringToWei(rawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
 			fee.CalcFee()
 		}
 
-		coinBalance, err := this.wm.WalletClient.GetAddrBalance2(AppendFMToAddress(addrBalance.Balance.Address), "pending")
+		coinBalance, err := this.wm.WalletClient.GetAddrBalance2(AppendFmToAddress(addrBalance.Address), "pending")
 		if err != nil {
 			continue
 		}
 
-		if coinBalance.Cmp(fee.Fee) < 0 {
-			coinBalance, _ := ConverFmStringToFMDecimal(coinBalance.String())
-			errBalance = fmt.Sprintf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
-			balanceNotEnough = true
-			continue
-		}
+		//if coinBalance.Cmp(fee.Fee) < 0 {
+		//	coinBalance, _ := ConverWeiStringToEthDecimal(coinBalance.String())
+		//	errBalance = fmt.Sprintf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
+		//	balanceNotEnough = true
+		//	continue
+		//}
 
 		//只要找到一个合适使用的地址余额就停止遍历
-		findAddrBalance = &AddrBalance{Address: addrBalance.Balance.Address, Balance: coinBalance, TokenBalance: addrBalance_BI}
+		findAddrBalance = &AddrBalance{Address: addrBalance.Address, Balance: coinBalance, TokenBalance: addrBalance_BI}
 		feeInfo = fee
 		callData = data
 		break
@@ -470,7 +470,20 @@ func (this *FMTransactionDecoder) CreateErc20TokenRawTransaction(wrapper openwal
 }
 
 //CreateRawTransaction 创建交易单
-func (this *FMTransactionDecoder) CreateRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (this *EthTransactionDecoder) CreateRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+	coin := openwallet.Coin{
+		Symbol:     rawTx.Account.Symbol,
+		IsContract: true,
+		ContractID: "",
+		Contract: openwallet.SmartContract{
+			ContractID: "",
+			Symbol:     Symbol,
+			Address:    CONTRACT_ADDRESS,
+			Name:       Symbol,
+			Decimals:   8,
+		},
+	}
+	rawTx.Coin = coin
 	if !rawTx.Coin.IsContract {
 		return this.CreateSimpleRawTransaction(wrapper, rawTx, nil)
 	}
@@ -478,7 +491,7 @@ func (this *FMTransactionDecoder) CreateRawTransaction(wrapper openwallet.Wallet
 }
 
 //SignRawTransaction 签名交易单
-func (this *FMTransactionDecoder) SignRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (this *EthTransactionDecoder) SignRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	//check交易交易单基本字段
 	err := VerifyRawTransaction(rawTx)
@@ -547,7 +560,7 @@ func (this *FMTransactionDecoder) SignRawTransaction(wrapper openwallet.WalletDA
 	return nil
 }
 
-func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
+func (this *EthTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
 	//check交易交易单基本字段
 	err := VerifyRawTransaction(rawTx)
 	if err != nil {
@@ -583,7 +596,7 @@ func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.
 	//	amountStr = v
 	//	break
 	//}
-	//amount, err := ConvertFMStringToWei(amountStr) //ConvertToBigInt(amountStr, 10)
+	//amount, err := ConvertEthStringToWei(amountStr) //ConvertToBigInt(amountStr, 10)
 	//if err != nil {
 	//	this.wm.Log.Std.Error("amount convert to big int failed, err=%v", err)
 	//	return err
@@ -596,13 +609,13 @@ func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.
 	}
 
 	//this.wm.Log.Debug("extPara.GasLimit:", extPara.GasLimit)
-	//gaslimit, err := ConvertFMStringToWei(extPara.GasLimit) //extPara.GetGasLimit()
+	//gaslimit, err := ConvertEthStringToWei(extPara.GasLimit) //extPara.GetGasLimit()
 	//if err != nil {
 	//	this.wm.Log.Std.Error("get gas limit failed, err=%v", err)
 	//	return errors.New("get gas limit failed")
 	//}
 
-	//gasPrice, err := ConvertFMStringToWei(rawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
+	//gasPrice, err := ConvertEthStringToWei(rawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
 	//if err != nil {
 	//	this.wm.Log.Std.Error("get gas price failed, err=%v", err)
 	//	return errors.New("get gas price failed")
@@ -640,9 +653,9 @@ func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.
 			return openwallet.Errorf(openwallet.ErrNonceInvaild, "nonce out of dated, please try to start ur tx once again. ")
 		}
 
-		//tx := types.NewTransaction(nonceSigned, fmcommon.HexToAddress(to),
+		//tx := types.NewTransaction(nonceSigned, ethcommon.HexToAddress(to),
 		//	amount, gaslimit.Uint64(), gasPrice, nil)
-		tx, err = tx.WithSignature(signer, fmcommon.FromHex(sig))
+		tx, err = tx.WithSignature(signer, ethcommon.FromHex(sig))
 		if err != nil {
 			this.wm.Log.Std.Error("tx with signature failed, err=%v ", err)
 			return errors.New("tx with signature failed. ")
@@ -657,7 +670,7 @@ func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.
 			return errors.New("encode tx to rlp failed. ")
 		}
 
-		txid, err := this.wm.WalletClient.fmSendRawTransaction(fmcommon.ToHex(rawTxPara))
+		txid, err := this.wm.WalletClient.fmSendRawTransaction(ethcommon.ToHex(rawTxPara))
 		if err != nil {
 			this.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
 			return openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
@@ -703,7 +716,7 @@ func (this *FMTransactionDecoder) SubmitSimpleRawTransaction(wrapper openwallet.
 	return tx, nil
 }
 
-func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
+func (this *EthTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
 	//check交易交易单基本字段
 	err := VerifyRawTransaction(rawTx)
 	if err != nil {
@@ -734,7 +747,7 @@ func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwal
 
 	//data := extPara.Data
 	//this.wm.Log.Debug("extPara.GasLimit:", extPara.GasLimit)
-	//gaslimit, err := ConvertFMStringToWei(extPara.GasLimit) //extPara.GetGasLimit()
+	//gaslimit, err := ConvertEthStringToWei(extPara.GasLimit) //extPara.GetGasLimit()
 	//if err != nil {
 	//	this.wm.Log.Std.Error("get gas limit failed, err=%v", err)
 	//	return errors.New("get gas limit failed")
@@ -748,7 +761,7 @@ func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwal
 		return nil, errors.New("get transaction count2 faile")
 	}
 
-	//gasPrice, err := ConvertFMStringToWei(rawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
+	//gasPrice, err := ConvertEthStringToWei(rawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
 	//if err != nil {
 	//	this.wm.Log.Std.Error("get gas price failed, err=%v", err)
 	//	return errors.New("get gas price failed")
@@ -788,9 +801,9 @@ func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwal
 			return errors.New("nonce out of dated, please try to start ur tx once again. ")
 		}
 
-		//tx := types.NewTransaction(nonceSigned, fmcommon.HexToAddress(rawTx.Coin.Contract.Address),
+		//tx := types.NewTransaction(nonceSigned, ethcommon.HexToAddress(rawTx.Coin.Contract.Address),
 		//	big.NewInt(0), gaslimit.Uint64(), gasPrice, common.FromHex(data))
-		tx, err = tx.WithSignature(signer, fmcommon.FromHex(sig))
+		tx, err = tx.WithSignature(signer, ethcommon.FromHex(sig))
 		if err != nil {
 			this.wm.Log.Std.Error("tx with signature failed, err=%v ", err)
 			return errors.New("tx with signature failed. ")
@@ -805,8 +818,11 @@ func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwal
 			return errors.New("encode tx to rlp failed. ")
 		}
 
-		txid, err := this.wm.WalletClient.fmSendRawTransaction(fmcommon.ToHex(rawTxPara))
+		txid, err := this.wm.WalletClient.fmSendRawTransaction(ethcommon.ToHex(rawTxPara))
 		if err != nil {
+			if err.Error() == "[10001]Returned error: insufficient funds for gas * price + value" {
+				this.wm.WalletClient.FmGetFee(txStatis.Address)
+			}
 			this.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
 			return openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
 		}
@@ -852,7 +868,20 @@ func (this *FMTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwal
 }
 
 //SendRawTransaction 广播交易单
-func (this *FMTransactionDecoder) SubmitRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
+func (this *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
+	coin := openwallet.Coin{
+		Symbol:     rawTx.Account.Symbol,
+		IsContract: true,
+		ContractID: "",
+		Contract: openwallet.SmartContract{
+			ContractID: "",
+			Symbol:     Symbol,
+			Address:    CONTRACT_ADDRESS,
+			Name:       Symbol,
+			Decimals:   8,
+		},
+	}
+	rawTx.Coin = coin
 	if !rawTx.Coin.IsContract {
 		return this.SubmitSimpleRawTransaction(wrapper, rawTx)
 	}
@@ -860,7 +889,7 @@ func (this *FMTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wallet
 }
 
 //VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
-func (this *FMTransactionDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (this *EthTransactionDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 	//check交易交易单基本字段
 	err := VerifyRawTransaction(rawTx)
 	if err != nil {
@@ -892,10 +921,10 @@ func (this *FMTransactionDecoder) VerifyRawTransaction(wrapper openwallet.Wallet
 	this.wm.Log.Debug("-- pubkey:", pubkey)
 	this.wm.Log.Debug("-- message:", msg)
 	this.wm.Log.Debug("-- Signature:", sig)
-	signature := fmcommon.FromHex(sig)
-	publickKey := owcrypt.PointDecompress(fmcommon.FromHex(pubkey), owcrypt.ECC_CURVE_SECP256K1)
+	signature := ethcommon.FromHex(sig)
+	publickKey := owcrypt.PointDecompress(ethcommon.FromHex(pubkey), owcrypt.ECC_CURVE_SECP256K1)
 	publickKey = publickKey[1:len(publickKey)]
-	ret := owcrypt.Verify(publickKey, nil, 0, fmcommon.FromHex(msg), 32, signature[0:len(signature)-1],
+	ret := owcrypt.Verify(publickKey, nil, 0, ethcommon.FromHex(msg), 32, signature[0:len(signature)-1],
 		owcrypt.ECC_CURVE_SECP256K1|owcrypt.HASH_OUTSIDE_FLAG)
 	if ret != owcrypt.SUCCESS {
 		errinfo := fmt.Sprintf("verify error, ret:%v\n", "0x"+strconv.FormatUint(uint64(ret), 16))
@@ -907,7 +936,7 @@ func (this *FMTransactionDecoder) VerifyRawTransaction(wrapper openwallet.Wallet
 }
 
 //CreateSummaryRawTransaction 创建汇总交易，返回原始交易单数组
-func (this *FMTransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransaction, error) {
+func (this *EthTransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransaction, error) {
 	var (
 		rawTxWithErrArray []*openwallet.RawTransactionWithError
 		rawTxArray        = make([]*openwallet.RawTransaction, 0)
@@ -930,14 +959,14 @@ func (this *FMTransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet
 	return rawTxArray, nil
 }
 
-//CreateSimpleSummaryRawTransaction 创建FM汇总交易
-func (this *FMTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
+//CreateSimpleSummaryRawTransaction 创建ETH汇总交易
+func (this *EthTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 
 	var (
 		rawTxArray         = make([]*openwallet.RawTransactionWithError, 0)
 		accountID          = sumRawTx.Account.AccountID
-		minTransfer, _     = ConvertFMStringToWei(sumRawTx.MinTransfer)
-		retainedBalance, _ = ConvertFMStringToWei(sumRawTx.RetainedBalance)
+		minTransfer, _     = ConvertEthStringToWei(sumRawTx.MinTransfer)
+		retainedBalance, _ = ConvertEthStringToWei(sumRawTx.RetainedBalance)
 	)
 
 	if minTransfer.Cmp(retainedBalance) < 0 {
@@ -968,7 +997,7 @@ func (this *FMTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper open
 	for _, addrBalance := range addrBalanceArray {
 
 		//检查余额是否超过最低转账
-		addrBalance_BI, _ := ConvertFMStringToWei(addrBalance.Balance)
+		addrBalance_BI, _ := ConvertEthStringToWei(addrBalance.Balance)
 
 		if addrBalance_BI.Cmp(minTransfer) < 0 {
 			continue
@@ -986,7 +1015,7 @@ func (this *FMTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper open
 		}
 
 		if sumRawTx.FeeRate != "" {
-			fee.GasPrice, createErr = ConvertFMStringToWei(sumRawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
+			fee.GasPrice, createErr = ConvertEthStringToWei(sumRawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
 			if createErr != nil {
 				this.wm.Log.Std.Error("fee rate passed through error, err=%v", createErr)
 				return nil, createErr
@@ -1000,8 +1029,8 @@ func (this *FMTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper open
 			continue
 		}
 
-		sumAmount, _ := ConverFmStringToFMDecimal(sumAmount_BI.String())
-		fees, _ := ConverFmStringToFMDecimal(fee.Fee.String())
+		sumAmount, _ := ConverWeiStringToEthDecimal(sumAmount_BI.String())
+		fees, _ := ConverWeiStringToEthDecimal(fee.Fee.String())
 
 		this.wm.Log.Debugf("balance: %v", addrBalance.Balance)
 		this.wm.Log.Debugf("fees: %v", fees)
@@ -1038,7 +1067,7 @@ func (this *FMTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper open
 }
 
 //CreateErc20TokenSummaryRawTransaction 创建ERC20Token汇总交易
-func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
+func (this *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 
 	var (
 		rawTxArray         = make([]*openwallet.RawTransactionWithError, 0)
@@ -1050,31 +1079,31 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 	)
 
 	// 如果有提供手续费账户，检查账户是否存在
-	if feesAcount := sumRawTx.FeesSupportAccount; feesAcount != nil {
-		account, supportErr := wrapper.GetAssetsAccountInfo(feesAcount.AccountID)
-		if supportErr != nil {
-			return nil, openwallet.Errorf(openwallet.ErrAccountNotFound, "can not find fees support account")
-		}
-
-		feesSupportAccount = account
-
-		//获取手续费支持账户的地址nonce
-		feesAddresses, feesSupportErr := wrapper.GetAddressList(0, 1,
-			"AccountID", feesSupportAccount.AccountID)
-		if feesSupportErr != nil {
-			return nil, openwallet.NewError(openwallet.ErrAddressNotFound, "fees support account have not addresses")
-		}
-
-		if len(feesAddresses) == 0 {
-			return nil, openwallet.Errorf(openwallet.ErrAccountNotAddress, "fees support account have not addresses")
-		}
-
-		_, nonce, feesSupportErr := this.GetTransactionCount2(feesAddresses[0].Address)
-		if feesSupportErr != nil {
-			return nil, openwallet.NewError(openwallet.ErrNonceInvaild, "fees support account get nonce failed")
-		}
-		tmpNonce = nonce
-	}
+	//if feesAcount := sumRawTx.FeesSupportAccount; feesAcount != nil {
+	//	account, supportErr := wrapper.GetAssetsAccountInfo(feesAcount.AccountID)
+	//	if supportErr != nil {
+	//		return nil, openwallet.Errorf(openwallet.ErrAccountNotFound, "can not find fees support account")
+	//	}
+	//
+	//	feesSupportAccount = account
+	//
+	//	//获取手续费支持账户的地址nonce
+	//	feesAddresses, feesSupportErr := wrapper.GetAddressList(0, 1,
+	//		"AccountID", feesSupportAccount.AccountID)
+	//	if feesSupportErr != nil {
+	//		return nil, openwallet.NewError(openwallet.ErrAddressNotFound, "fees support account have not addresses")
+	//	}
+	//
+	//	if len(feesAddresses) == 0 {
+	//		return nil, openwallet.Errorf(openwallet.ErrAccountNotAddress, "fees support account have not addresses")
+	//	}
+	//
+	//	_, nonce, feesSupportErr := this.GetTransactionCount2(feesAddresses[0].Address)
+	//	if feesSupportErr != nil {
+	//		return nil, openwallet.NewError(openwallet.ErrNonceInvaild, "fees support account get nonce failed")
+	//	}
+	//	tmpNonce = nonce
+	//}
 	//tokenCoin := sumRawTx.Coin.Contract.Token
 	tokenDecimals := int(sumRawTx.Coin.Contract.Decimals)
 	contractAddress := sumRawTx.Coin.Contract.Address
@@ -1104,7 +1133,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 	}
 
 	//查询Token余额
-	addrBalanceArray, err := this.wm.ContractDecoder.GetTokenBalanceByAddress(sumRawTx.Coin.Contract, searchAddrs...)
+	addrBalanceArray, err := this.wm.Blockscanner.GetBalanceByAddress(searchAddrs...)
 	if err != nil {
 		return nil, err
 	}
@@ -1112,7 +1141,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 	for _, addrBalance := range addrBalanceArray {
 
 		//检查余额是否超过最低转账
-		addrBalance_BI, _ := ConvertFloatStringToBigInt(addrBalance.Balance.Balance, tokenDecimals)
+		addrBalance_BI, _ := ConvertFloatStringToBigInt(addrBalance.Balance, tokenDecimals)
 
 		if addrBalance_BI.Cmp(minTransfer) < 0 || addrBalance_BI.Cmp(big.NewInt(0)) <= 0 {
 			continue
@@ -1125,14 +1154,14 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 
 		//this.wm.Log.Debug("sumAmount:", sumAmount)
 		//计算手续费
-		fee, createErr := this.wm.GetTransactionFeeEstimated(addrBalance.Balance.Address, contractAddress, nil, callData)
+		fee, createErr := this.wm.GetTransactionFeeEstimated(addrBalance.Address, contractAddress, nil, callData)
 		if createErr != nil {
-			this.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, sumRawTx.SummaryAddress, createErr)
+			this.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Address, sumRawTx.SummaryAddress, createErr)
 			return nil, createErr
 		}
 
 		if sumRawTx.FeeRate != "" {
-			fee.GasPrice, createErr = ConvertFMStringToWei(sumRawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
+			fee.GasPrice, createErr = ConvertEthStringToWei(sumRawTx.FeeRate) //ConvertToBigInt(rawTx.FeeRate, 16)
 			if createErr != nil {
 				this.wm.Log.Std.Error("fee rate passed through error, err=%v", createErr)
 				return nil, createErr
@@ -1141,9 +1170,9 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 		}
 
 		sumAmount, _ := ConvertAmountToFloatDecimal(sumAmount_BI.String(), tokenDecimals)
-		fees, _ := ConverFmStringToFMDecimal(fee.Fee.String())
+		fees, _ := ConverWeiStringToEthDecimal(fee.Fee.String())
 
-		coinBalance, createErr := this.wm.WalletClient.GetAddrBalance2(AppendFMToAddress(addrBalance.Balance.Address), "pending")
+		coinBalance, createErr := this.wm.WalletClient.GetAddrBalance2(AppendOxToAddress(addrBalance.Address), "pending")
 		if err != nil {
 			continue
 		}
@@ -1155,7 +1184,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 			if feesSupportAccount != nil {
 
 				//通过手续费账户创建交易单
-				supportAddress := addrBalance.Balance.Address
+				supportAddress := addrBalance.Address
 				supportAmount := decimal.Zero
 				feesSupportScale, _ := decimal.NewFromString(sumRawTx.FeesSupportAccount.FeesSupportScale)
 				fixSupportAmount, _ := decimal.NewFromString(sumRawTx.FeesSupportAccount.FixSupportAmount)
@@ -1189,7 +1218,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 					Coin:    supportCoin,
 					Account: feesSupportAccount,
 					To: map[string]string{
-						addrBalance.Balance.Address: supportAmount.String(),
+						addrBalance.Address: supportAmount.String(),
 					},
 					Required: 1,
 				}
@@ -1211,7 +1240,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 			}
 		}
 
-		this.wm.Log.Debugf("balance: %v", addrBalance.Balance.Balance)
+		this.wm.Log.Debugf("balance: %v", addrBalance.Balance)
 		this.wm.Log.Debugf("%s fees: %v", sumRawTx.Coin.Symbol, fees)
 		this.wm.Log.Debugf("sumAmount: %v", sumAmount)
 
@@ -1228,7 +1257,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 		createTxErr := this.createRawTransaction(
 			wrapper,
 			rawTx,
-			&AddrBalance{Address: addrBalance.Balance.Address, Balance: coinBalance, TokenBalance: addrBalance_BI},
+			&AddrBalance{Address: addrBalance.Address, Balance: coinBalance, TokenBalance: addrBalance_BI},
 			fee,
 			callData,
 			nil)
@@ -1246,7 +1275,7 @@ func (this *FMTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper 
 }
 
 //createRawTransaction
-func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction, addrBalance *AddrBalance, fee *txFeeInfo, callData string, tmpNonce *uint64) *openwallet.Error {
+func (this *EthTransactionDecoder) createRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction, addrBalance *AddrBalance, fee *txFeeInfo, callData string, tmpNonce *uint64) *openwallet.Error {
 
 	var (
 		accountTotalSent = decimal.Zero
@@ -1277,12 +1306,12 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 		accountTotalSent = accountTotalSent.Add(amountDec)
 	}
 
-	txFrom = []string{fmt.Sprintf("%s:%s", CreateTxReplaceFmTo0x(addrBalance.Address), amountStr)}
-	txTo = []string{fmt.Sprintf("%s:%s", CreateTxReplaceFmTo0x(destination), amountStr)}
+	txFrom = []string{fmt.Sprintf("%s:%s", ReplaceFmToAddress(addrBalance.Address), amountStr)}
+	txTo = []string{fmt.Sprintf("%s:%s", ReplaceFmToAddress(destination), amountStr)}
 
-	gasLimitStr, err := ConverFmStringToFMDecimal(fee.GasLimit.String())
+	gasLimitStr, err := ConverWeiStringToEthDecimal(fee.GasLimit.String())
 	if err != nil {
-		this.wm.Log.Error("ConverFmStringToFMDecimal failed, err=", err)
+		this.wm.Log.Error("ConverWeiStringToEthDecimal failed, err=", err)
 		return openwallet.ConvertError(err)
 	}
 
@@ -1291,13 +1320,13 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 	}
 	extparastr, _ := json.Marshal(extpara)
 
-	gasprice, err := ConverFmStringToFMDecimal(fee.GasPrice.String())
+	gasprice, err := ConverWeiStringToEthDecimal(fee.GasPrice.String())
 	if err != nil {
 		this.wm.Log.Error("convert wei string to gas price failed, err=", err)
 		return openwallet.ConvertError(err)
 	}
 
-	totalFeeDecimal, err := ConverFmStringToFMDecimal(fee.Fee.String())
+	totalFeeDecimal, err := ConverWeiStringToEthDecimal(fee.Fee.String())
 	if err != nil {
 		this.wm.Log.Errorf("convert total fee from wei string to eth decimal failed, err=%v", err)
 		return openwallet.ConvertError(err)
@@ -1344,17 +1373,17 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 			//return openwallet.Errorf("the token balance: %s is not enough", amountStr)
 		}
 
-		if addrBalance.Balance.Cmp(fee.Fee) < 0 {
-			coinBalance, _ := ConverFmStringToFMDecimal(addrBalance.Balance.String())
-			return openwallet.Errorf(openwallet.ErrInsufficientFees, "the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
-			//return openwallet.Errorf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
-		}
+		//if addrBalance.Balance.Cmp(fee.Fee) < 0 {
+		//	coinBalance, _ := ConverWeiStringToEthDecimal(addrBalance.Balance.String())
+		//	return openwallet.Errorf(openwallet.ErrInsufficientFees, "the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
+		//	//return openwallet.Errorf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
+		//}
 
-		tx = types.NewTransaction(nonce, fmcommon.HexToAddress(rawTx.Coin.Contract.Address),
-			big.NewInt(0), gasLimit, fee.GasPrice, fmcommon.FromHex(callData))
+		tx = types.NewTransaction(nonce, ethcommon.HexToAddress(rawTx.Coin.Contract.Address),
+			big.NewInt(0), gasLimit, fee.GasPrice, ethcommon.FromHex(callData))
 	} else {
 		//构建ETH交易
-		amount, _ := ConvertFMStringToWei(amountStr)
+		amount, _ := ConvertEthStringToWei(amountStr)
 
 		totalAmount := new(big.Int)
 		totalAmount.Add(amount, fee.Fee)
@@ -1363,7 +1392,7 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 			//return openwallet.Errorf("the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
 		}
 
-		tx = types.NewTransaction(nonce, fmcommon.HexToAddress(CreateTxReplaceFmTo0x(destination)),
+		tx = types.NewTransaction(nonce, ethcommon.HexToAddress(destination),
 			amount, gasLimit, fee.GasPrice, []byte(""))
 	}
 
@@ -1397,7 +1426,22 @@ func (this *FMTransactionDecoder) createRawTransaction(wrapper openwallet.Wallet
 }
 
 // CreateSummaryRawTransactionWithError 创建汇总交易，返回能原始交易单数组（包含带错误的原始交易单）
-func (this *FMTransactionDecoder) CreateSummaryRawTransactionWithError(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
+func (this *EthTransactionDecoder) CreateSummaryRawTransactionWithError(
+	wrapper openwallet.WalletDAI,
+	sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
+	coin := openwallet.Coin{
+		Symbol:     sumRawTx.Account.Symbol,
+		IsContract: true,
+		ContractID: "",
+		Contract: openwallet.SmartContract{
+			ContractID: "",
+			Symbol:     Symbol,
+			Address:    CONTRACT_ADDRESS,
+			Name:       Symbol,
+			Decimals:   8,
+		},
+	}
+	sumRawTx.Coin = coin
 	if sumRawTx.Coin.IsContract {
 		return this.CreateErc20TokenSummaryRawTransaction(wrapper, sumRawTx)
 	} else {

@@ -24,11 +24,11 @@ import (
 func TestEthGetBlockNumber(t *testing.T) {
 
 	tw := Client{
-		BaseURL: "https://chain.ipfs-spacetime.com/exchange/",
+		BaseURL: "https://chain.fmchain.cc/exchange/",
 		Debug:   true,
 	}
 
-	if r, err := tw.FMGetBlockNumber(); err != nil {
+	if r, err := tw.FmGetBlockNumber(); err != nil {
 		t.Errorf("GetAccountNet failed: %v\n", err)
 	} else {
 		t.Logf("GetAccountNet return: \n\t%+v\n", r)
@@ -38,7 +38,7 @@ func TestEthGetBlockNumber(t *testing.T) {
 func TestFmGetBlockSpecByBlockNum2(t *testing.T) {
 
 	tw := Client{
-		BaseURL: "https://chain.ipfs-spacetime.com/exchange/",
+		BaseURL: "https://chain.fmchain.cc/exchange/",
 		Debug:   true,
 	}
 
@@ -85,8 +85,20 @@ func TestGenToken(t *testing.T) {
 	fmt.Println(GenToken(now))
 }
 
-func TestCreateTxReplaceFmTo0x(t *testing.T) {
-	addr := "FMd6cc76c51c218c286c783d98e42860afa07bdc70"
-	result := CreateTxReplaceFmTo0x(addr)
-	fmt.Printf("address is : %s", result)
+func TestReplaceFmToAddress(t *testing.T) {
+	addr := "0x9CbCcC684596B187da75BCa9996442c301e0f818"
+	result := ReplaceFmToAddress(addr)
+	fmt.Printf("result : %s", result)
 }
+
+//func TestCreateTxReplaceFmTo0x(t *testing.T) {
+//	addr := "FMd6cc76c51c218c286c783d98e42860afa07bdc70"
+//	result := CreateTxReplaceFmTo0x(addr)
+//	fmt.Printf("address is : %s", result)
+//}
+//
+//func TestFixFmDecimalLen(t *testing.T) {
+//	amount := "12120.00000001123123"
+//	result := FixFmDecimalLen(amount)
+//	fmt.Printf("result : %s", result)
+//}

@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	testApp        = "filememory-adapter"
+	testApp        = "ethereum-adapter"
 	configFilePath = filepath.Join("conf")
 )
 
@@ -21,7 +21,7 @@ func testInitWalletManager() *openw.WalletManager {
 	tc.ConfigDir = configFilePath
 	tc.EnableBlockScan = false
 	tc.SupportAssets = []string{
-		"ETH",
+		"FM",
 	}
 	return openw.NewWalletManager(tc)
 	//tm.Init()

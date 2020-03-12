@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Assetsadapter/filememory-adapter/filememory"
+	"github.com/blocktree/ethereum-adapter/filememory"
 )
 
 func main()  {

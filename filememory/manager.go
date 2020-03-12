@@ -399,7 +399,7 @@ func (this *WalletManager) exportAddressToFile(addrs []*Address, filePath string
 
 	for _, a := range addrs {
 		//log.Std.Info("Export: %s ", a.Address)
-		content = content + AppendFMToAddress(a.Address) + "\n"
+		content = content + AppendFmToAddress(a.Address) + "\n"
 	}
 
 	file.MkdirAll(this.GetConfig().AddressDir)
@@ -463,35 +463,34 @@ func (this *txFeeInfo) CalcFee() error {
 func (this *WalletManager) GetTransactionFeeEstimated(from string, to string, value *big.Int, data string) (*txFeeInfo, error) {
 
 	var (
-		gasLimit, gasPrice = big.NewInt(0), big.NewInt(18)
+		gasLimit, gasPrice = big.NewInt(this.Config.GasLimit.Int64()), big.NewInt(this.Config.GasPrice.Int64())
 	)
-	//if this.Config.FixGasLimit.Cmp(big.NewInt(0)) > 0 {
-	//	//配置设置固定gasLimit
-	//	gasLimit = this.Config.FixGasLimit
-	//} else {
-	//	//动态计算gas消耗
-	//	gasLimit, err = this.WalletClient.ethGetGasEstimated(makeGasEstimatePara(from, to, value, data))
-	//	if err != nil {
-	//		this.Log.Errorf(fmt.Sprintf("get gas limit failed, err = %v\n", err))
-	//		return nil, err
-	//	}
-	//}
+	/*
+	20200310 与项目方沟通,使用固定值GAS
+	if this.Config.GasLimit.Cmp(big.NewInt(0)) > 0 {
+		//配置设置固定gasLimit
+		gasLimit = this.Config.GasLimit
+	} else {
+		//动态计算gas消耗
+		gasLimit, err = this.WalletClient.ethGetGasEstimated(makeGasEstimatePara(from, to, value, data))
+		if err != nil {
+			this.Log.Errorf(fmt.Sprintf("get gas limit failed, err = %v\n", err))
+			return nil, err
+		}
+	}
 
-	//gasPrice, err := this.WalletClient.ethGetGasPrice()
-	//if err != nil {
-	//	this.Log.Errorf(fmt.Sprintf("get gas price failed, err = %v\n", err))
-	//	return nil, err
-	//}
+	gasPrice, err = this.WalletClient.ethGetGasPrice()
+	if err != nil {
+		this.Log.Errorf(fmt.Sprintf("get gas price failed, err = %v\n", err))
+		return nil, err
+	}
 
-	gasLimit = this.Config.FixGasLimit
-
-	//	fee := new(big.Int)
-	//	fee.Mul(gasLimit, gasPrice)
+	fee := new(big.Int)
+	fee.Mul(gasLimit, gasPrice)*/
 
 	feeInfo := &txFeeInfo{
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
-		//		Fee:      fee,
 	}
 
 	feeInfo.CalcFee()
@@ -680,7 +679,20 @@ func (this *Client) ethGetGasPrice() (*big.Int, error) {
 }
 
 func (this *WalletManager) GetNonceForAddress2(address string) (uint64, error) {
-	address = AppendFMToAddress(address)
+	address = ReplaceFmToAddress(address)
+	//txpool, err := this.WalletClient.EthGetTxPoolContent()
+	//if err != nil {
+	//	this.Log.Errorf("EthGetTxPoolContent failed, err = %v", err)
+	//	return 0, err
+	//}
+	//
+	//_, max, count, err := txpool.GetSequentTxNonce(address)
+	//if err != nil {
+	//	log.Error("get txpool sequent tx nonce failed, err=%v", err)
+	//	return 0, err
+	//}
+	//log.Debugf("sequent max nonce:%v", max)
+	//log.Debugf("sequent nonce count:%v", count)
 	txCount, err := this.WalletClient.fmGetTransactionCount(address)
 	if err != nil {
 		log.Error("fmGetTransactionCount failed, err=", err)

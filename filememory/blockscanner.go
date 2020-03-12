@@ -43,7 +43,7 @@ const (
 
 )
 
-type FMBLockScanner struct {
+type ETHBLockScanner struct {
 	*openwallet.BlockScannerBase
 	CurrentBlockHeight   uint64         //当前区块高度
 	extractingCH         chan struct{}  //扫描工作令牌
@@ -70,8 +70,8 @@ type SaveResult struct {
 }
 
 //NewBTCBlockScanner 创建区块链扫描器
-func NewETHBlockScanner(wm *WalletManager) *FMBLockScanner {
-	bs := FMBLockScanner{
+func NewETHBlockScanner(wm *WalletManager) *ETHBLockScanner {
+	bs := ETHBLockScanner{
 		BlockScannerBase: openwallet.NewBlockScannerBase(),
 	}
 
@@ -87,7 +87,7 @@ func NewETHBlockScanner(wm *WalletManager) *FMBLockScanner {
 }
 
 //SetRescanBlockHeight 重置区块链扫描高度
-func (this *FMBLockScanner) SetRescanBlockHeight(height uint64) error {
+func (this *ETHBLockScanner) SetRescanBlockHeight(height uint64) error {
 	height = height - 1
 	if height < 0 {
 		return errors.New("block height to rescan must greater than 0.")
@@ -108,14 +108,14 @@ func (this *FMBLockScanner) SetRescanBlockHeight(height uint64) error {
 	return nil
 }
 
-func (this *FMBLockScanner) newBlockNotify(block *FMBlock, isFork bool) {
+func (this *ETHBLockScanner) newBlockNotify(block *FMBlock, isFork bool) {
 	header := block.CreateOpenWalletBlockHeader()
 	header.Fork = isFork
 	header.Symbol = this.wm.Config.Symbol
 	this.NewBlockNotify(header)
 }
 
-func (this *FMBLockScanner) ScanBlock(height uint64) error {
+func (this *ETHBLockScanner) ScanBlock(height uint64) error {
 	curBlock, err := this.wm.WalletClient.EthGetBlockSpecByBlockNum(height, true)
 	if err != nil {
 		this.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
@@ -133,7 +133,7 @@ func (this *FMBLockScanner) ScanBlock(height uint64) error {
 	return nil
 }
 
-func (this *FMBLockScanner) ScanTxMemPool() error {
+func (this *ETHBLockScanner) ScanTxMemPool() error {
 	this.wm.Log.Infof("block scanner start to scan mempool.")
 
 	txs, err := this.GetTxPoolPendingTxs()
@@ -150,7 +150,7 @@ func (this *FMBLockScanner) ScanTxMemPool() error {
 	return nil
 }
 
-func (this *FMBLockScanner) RescanFailedTransactions() error {
+func (this *ETHBLockScanner) RescanFailedTransactions() error {
 	unscannedTxs, err := this.GetUnscanRecords()
 	if err != nil {
 		this.wm.Log.Errorf("GetAllUnscannedTransactions failed. err=%v", err)
@@ -176,7 +176,7 @@ func (this *FMBLockScanner) RescanFailedTransactions() error {
 	return nil
 }
 
-func (this *FMBLockScanner) ScanBlockTask() {
+func (this *ETHBLockScanner) ScanBlockTask() {
 
 	//获取本地区块高度
 	blockHeader, err := this.GetScannedBlockHeader()
@@ -195,7 +195,7 @@ func (this *FMBLockScanner) ScanBlockTask() {
 			return
 		}
 
-		maxBlockHeight, err := this.wm.WalletClient.FMGetBlockNumber()
+		maxBlockHeight, err := this.wm.WalletClient.FmGetBlockNumber()
 		if err != nil {
 			this.wm.Log.Errorf("get max height of eth failed, err=%v", err)
 			break
@@ -297,7 +297,7 @@ func (this *FMBLockScanner) ScanBlockTask() {
 }
 
 //newExtractDataNotify 发送通知
-func (this *FMBLockScanner) newExtractDataNotify(height uint64, tx *BlockTransaction, extractDataList map[string][]*openwallet.TxExtractData) error {
+func (this *ETHBLockScanner) newExtractDataNotify(height uint64, tx *BlockTransaction, extractDataList map[string][]*openwallet.TxExtractData) error {
 
 	for o, _ := range this.Observers {
 		for key, extractData := range extractDataList {
@@ -326,7 +326,7 @@ func (this *FMBLockScanner) newExtractDataNotify(height uint64, tx *BlockTransac
 
 //BatchExtractTransaction 批量提取交易单
 //bitcoin 1M的区块链可以容纳3000笔交易，批量多线程处理，速度更快
-func (this *FMBLockScanner) BatchExtractTransaction(txs []BlockTransaction) error {
+func (this *ETHBLockScanner) BatchExtractTransaction(txs []BlockTransaction) error {
 	for i := range txs {
 		txs[i].FilterFunc = this.ScanAddressFunc
 		extractResult, err := this.TransactionScanning(&txs[i])
@@ -346,7 +346,7 @@ func (this *FMBLockScanner) BatchExtractTransaction(txs []BlockTransaction) erro
 	return nil
 }
 
-func (this *FMBLockScanner) GetTxPoolPendingTxs() ([]BlockTransaction, error) {
+func (this *ETHBLockScanner) GetTxPoolPendingTxs() ([]BlockTransaction, error) {
 	txpoolContent, err := this.wm.WalletClient.EthGetTxPoolContent()
 	if err != nil {
 		this.wm.Log.Errorf("get txpool content failed, err=%v", err)
@@ -386,38 +386,41 @@ func (this *WalletManager) GetErc20TokenEvent(transactionID string) (map[string]
 	return transEvent, nil
 }
 
-//func (this *FMBLockScanner) UpdateTxByReceipt(tx *BlockTransaction) (map[string][]*TransferEvent, error) {
-//	//过滤掉未打包交易
-//	if tx.BlockHeight == 0 || tx.BlockHash == "" {
-//		return nil, nil
-//	}
-//
-//	receipt, err := this.wm.WalletClient.EthGetTransactionReceipt(tx.Hash)
-//	if err != nil {
-//		this.wm.Log.Errorf("get transaction receipt failed, err=%v", err)
-//		return nil, err
-//	}
-//
-//	//tx.Gas = receipt.GasUsed
-//	tx.Status = receipt.Status
-//	if err != nil {
-//		return nil, err
-//	}
-//	transEvent := receipt.ParseTransferEvent()
-//	if transEvent == nil {
-//		return nil, nil
-//	}
-//	return receipt.ParseTransferEvent(), nil
-//}
+func (this *ETHBLockScanner) UpdateTxByReceipt(tx *BlockTransaction) (map[string][]*TransferEvent, error) {
+	//过滤掉未打包交易
+	if tx.BlockHeight == 0 || tx.BlockHash == "" {
+		return nil, nil
+	}
 
-func (this *FMBLockScanner) MakeToExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
+	receipt, err := this.wm.WalletClient.EthGetTransactionReceipt(tx.Hash)
+	if err != nil {
+		this.wm.Log.Errorf("get transaction receipt failed, err=%v", err)
+		return nil, err
+	}
+
+	/*
+	20200310
+	tx.Gas = receipt.GasUsed
+	tx.Status, err = ConvertToUint64(receipt.Status, 16)
+	if err != nil {
+		return nil, err
+	}*/
+
+	// transEvent := receipt.ParseTransferEvent()
+	// if transEvent == nil {
+	// 	return nil, nil
+	// }
+	return receipt.ParseTransferEvent(), nil
+}
+
+func (this *ETHBLockScanner) MakeToExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
 	if tokenEvent == nil {
 		return this.MakeSimpleToExtractData(tx)
 	}
 	return this.MakeTokenToExtractData(tx, tokenEvent)
 }
 
-func (this *FMBLockScanner) MakeSimpleToExtractData(tx *BlockTransaction) (string, []*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) MakeSimpleToExtractData(tx *BlockTransaction) (string, []*openwallet.TxExtractData, error) {
 	var sourceKey string
 	var exist bool
 	var extractDataList []*openwallet.TxExtractData
@@ -425,6 +428,7 @@ func (this *FMBLockScanner) MakeSimpleToExtractData(tx *BlockTransaction) (strin
 		return "", extractDataList, nil
 	}
 
+	// 20200310
 	//feeprice, err := tx.GetTxFeeEthString()
 	//if err != nil {
 	//	this.wm.Log.Errorf("calc tx fee in eth failed, err=%v", err)
@@ -491,7 +495,7 @@ func (this *FMBLockScanner) MakeSimpleToExtractData(tx *BlockTransaction) (strin
 	return sourceKey, extractDataList, nil
 }
 
-func (this *FMBLockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Balance, error) {
+func (this *ETHBLockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Balance, error) {
 	type addressBalance struct {
 		Address string
 		Index   uint64
@@ -526,13 +530,13 @@ func (this *FMBLockScanner) GetBalanceByAddress(address ...string) ([]*openwalle
 			<-threadControl
 		}()
 
-		balanceConfirmed, err := this.wm.WalletClient.GetAddrBalance2(AppendFMToAddress(addr.Address), "latest")
+		balanceConfirmed, err := this.wm.WalletClient.GetAddrBalance2(AppendFmToAddress(addr.Address), "latest")
 		if err != nil {
 			this.wm.Log.Error("get address[", addr.Address, "] balance failed, err=", err)
 			return
 		}
 
-		balanceAll, err := this.wm.WalletClient.GetAddrBalance2(AppendFMToAddress(addr.Address), "pending")
+		balanceAll, err := this.wm.WalletClient.GetAddrBalance2(AppendFmToAddress(addr.Address), "pending")
 		if err != nil {
 			//this.wm.Log.Errorf("get address[%v] erc20 token balance failed, err=%v", address, err)
 			//return
@@ -547,20 +551,20 @@ func (this *FMBLockScanner) GetBalanceByAddress(address ...string) ([]*openwalle
 			Symbol:  this.wm.Symbol(),
 			Address: addr.Address,
 		}
-		confirmed, err := ConverFmStringToFMDecimal(balanceConfirmed.String())
+		confirmed, err := ConverWeiStringToEthDecimal(balanceConfirmed.String())
 		if err != nil {
-			this.wm.Log.Errorf("ConverFmStringToFMDecimal confirmed balance failed, err=%v", err)
+			this.wm.Log.Errorf("ConverWeiStringToEthDecimal confirmed balance failed, err=%v", err)
 			return
 		}
-		all, err := ConverFmStringToFMDecimal(balanceAll.String())
+		all, err := ConverWeiStringToEthDecimal(balanceAll.String())
 		if err != nil {
-			this.wm.Log.Errorf("ConverFmStringToFMDecimal all balance failed, err=%v", err)
+			this.wm.Log.Errorf("ConverWeiStringToEthDecimal all balance failed, err=%v", err)
 			return
 		}
 
-		unconfirmed, err := ConverFmStringToFMDecimal(balanceUnconfirmed.String())
+		unconfirmed, err := ConverWeiStringToEthDecimal(balanceUnconfirmed.String())
 		if err != nil {
-			this.wm.Log.Errorf("ConverFmStringToFMDecimal unconfirmed balance failed, err=%v", err)
+			this.wm.Log.Errorf("ConverWeiStringToEthDecimal unconfirmed balance failed, err=%v", err)
 			return
 		}
 
@@ -585,7 +589,7 @@ func (this *FMBLockScanner) GetBalanceByAddress(address ...string) ([]*openwalle
 	return resultBalance, nil
 }
 
-func (this *FMBLockScanner) MakeTokenToExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) MakeTokenToExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
 	var sourceKey string
 	var exist bool
 	var extractDataList []*openwallet.TxExtractData
@@ -662,14 +666,14 @@ func (this *FMBLockScanner) MakeTokenToExtractData(tx *BlockTransaction, tokenEv
 	return sourceKey, extractDataList, nil
 }
 
-func (this *FMBLockScanner) MakeFromExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) MakeFromExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
 	if tokenEvent == nil {
 		return this.MakeSimpleTxFromExtractData(tx)
 	}
 	return this.MakeTokenTxFromExtractData(tx, tokenEvent)
 }
 
-func (this *FMBLockScanner) MakeSimpleTxFromExtractData(tx *BlockTransaction) (string, []*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) MakeSimpleTxFromExtractData(tx *BlockTransaction) (string, []*openwallet.TxExtractData, error) {
 	var sourceKey string
 	var exist bool
 	var extractDataList []*openwallet.TxExtractData
@@ -677,11 +681,11 @@ func (this *FMBLockScanner) MakeSimpleTxFromExtractData(tx *BlockTransaction) (s
 		return "", extractDataList, nil
 	}
 
-	//feeprice, err := tx.GetTxFeeEthString()
-	//if err != nil {
-	//	this.wm.Log.Errorf("calc tx fee in eth failed, err=%v", err)
-	//	return "", extractDataList, err
-	//}
+	feeprice, err := tx.GetTxFeeEthString()
+	if err != nil {
+		this.wm.Log.Errorf("calc tx fee in eth failed, err=%v", err)
+		return "", extractDataList, err
+	}
 
 	amountVal, err := tx.GetAmountEthString()
 	if err != nil {
@@ -718,7 +722,7 @@ func (this *FMBLockScanner) MakeSimpleTxFromExtractData(tx *BlockTransaction) (s
 				Symbol:     this.wm.Symbol(),
 				IsContract: false,
 			},
-			//Amount:      feeprice,
+			Amount:      feeprice,
 			BlockHash:   tx.BlockHash,
 			BlockHeight: tx.BlockHeight,
 			TxType:      0,
@@ -761,7 +765,7 @@ func (this *FMBLockScanner) MakeSimpleTxFromExtractData(tx *BlockTransaction) (s
 	return sourceKey, extractDataList, nil
 }
 
-func (this *FMBLockScanner) MakeTokenTxFromExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) MakeTokenTxFromExtractData(tx *BlockTransaction, tokenEvent *TransferEvent) (string, []*openwallet.TxExtractData, error) {
 	var sourceKey string
 	var exist bool
 	var extractDataList []*openwallet.TxExtractData
@@ -783,11 +787,11 @@ func (this *FMBLockScanner) MakeTokenTxFromExtractData(tx *BlockTransaction, tok
 		},
 	}
 
-	//feeprice, err := tx.GetTxFeeEthString()
-	//if err != nil {
-	//	this.wm.Log.Errorf("calc tx fee in eth failed, err=%v", err)
-	//	return "", extractDataList, err
-	//}
+	feeprice, err := tx.GetTxFeeEthString()
+	if err != nil {
+		this.wm.Log.Errorf("calc tx fee in eth failed, err=%v", err)
+		return "", extractDataList, err
+	}
 
 	tokenValue, err := ConvertToBigInt(tokenEvent.Value, 16)
 	if err != nil {
@@ -845,7 +849,7 @@ func (this *FMBLockScanner) MakeTokenTxFromExtractData(tx *BlockTransaction, tok
 				Symbol:     this.wm.Symbol(),
 				IsContract: false,
 			},
-			//Amount:      feeprice,
+			Amount:      feeprice,
 			BlockHash:   tx.BlockHash,
 			BlockHeight: tx.BlockHeight,
 			TxType:      1,
@@ -888,7 +892,7 @@ func (this *FMBLockScanner) MakeTokenTxFromExtractData(tx *BlockTransaction, tok
 }
 
 //ExtractTransactionData 扫描一笔交易
-func (this *FMBLockScanner) ExtractTransactionData(txid string, scanTargetFunc openwallet.BlockScanTargetFunc) (map[string][]*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) ExtractTransactionData(txid string, scanTargetFunc openwallet.BlockScanTargetFunc) (map[string][]*openwallet.TxExtractData, error) {
 	//result := bs.ExtractTransaction(0, "", txid, scanAddressFunc)
 	tx, err := this.wm.WalletClient.EthGetTransactionByHash(txid)
 	if err != nil {
@@ -911,7 +915,7 @@ func (this *FMBLockScanner) ExtractTransactionData(txid string, scanTargetFunc o
 	return result.extractData, nil
 }
 
-func (this *FMBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractResult, error) {
+func (this *ETHBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractResult, error) {
 	//txToNotify := make(map[string][]BlockTransaction)
 	if tx.BlockNumber == 0 {
 		return &ExtractResult{
@@ -922,7 +926,7 @@ func (this *FMBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractR
 		}, nil
 	}
 
-	blockHeight := tx.BlockNumber
+	blockHeight :=tx.BlockNumber
 
 	tx.BlockHeight = blockHeight
 	var result = ExtractResult{
@@ -975,14 +979,14 @@ func (this *FMBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractR
 	//} else if ToSourceKey != "" {
 	//	result.extractData[ToSourceKey] = toExtractDataList
 	//}
-
-	isTokenTransfer := false
+	//
+	//isTokenTransfer := false
 	//if len(tokenEvent) > 0 {
 	//	isTokenTransfer = true
 	//}
 
 	//提出主币交易单
-	extractData, err := this.extractETHTransaction(tx, isTokenTransfer)
+	extractData, err := this.extractETHTransaction(tx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -995,7 +999,7 @@ func (this *FMBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractR
 		result.extractData[sourceKey] = extractDataArray
 	}
 
-	////提取代币交易单
+	//提取代币交易单
 	//for contractAddress, tokenEventArray := range tokenEvent {
 	//	//提出主币交易单
 	//	extractERC20Data, err := this.extractERC20Transaction(tx, contractAddress, tokenEventArray)
@@ -1016,7 +1020,7 @@ func (this *FMBLockScanner) TransactionScanning(tx *BlockTransaction) (*ExtractR
 }
 
 //extractETHTransaction 提取ETH主币交易单
-func (this *FMBLockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTransfer bool) (map[string]*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTransfer bool) (map[string]*openwallet.TxExtractData, error) {
 
 	txExtractMap := make(map[string]*openwallet.TxExtractData)
 	from := tx.From
@@ -1040,6 +1044,7 @@ func (this *FMBLockScanner) extractETHTransaction(tx *BlockTransaction, isTokenT
 		return nil, err
 	}
 
+	// 20200310
 	//feeprice, err := tx.GetTxFeeEthString()
 	//if err != nil {
 	//	return nil, err
@@ -1136,7 +1141,7 @@ func (this *FMBLockScanner) extractETHTransaction(tx *BlockTransaction, isTokenT
 }
 
 //extractERC20Transaction
-func (this *FMBLockScanner) extractERC20Transaction(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent) (map[string]*openwallet.TxExtractData, error) {
+func (this *ETHBLockScanner) extractERC20Transaction(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent) (map[string]*openwallet.TxExtractData, error) {
 
 	nowUnix := time.Now().Unix()
 	status := common.NewString(tx.Status).String()
@@ -1191,7 +1196,7 @@ func (this *FMBLockScanner) extractERC20Transaction(tx *BlockTransaction, contra
 }
 
 //extractERC20Detail
-func (this *FMBLockScanner) extractERC20Detail(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent, isInput bool, extractData map[string]*openwallet.TxExtractData) ([]string, error) {
+func (this *ETHBLockScanner) extractERC20Detail(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent, isInput bool, extractData map[string]*openwallet.TxExtractData) ([]string, error) {
 
 	var (
 		addrs  = make([]string, 0)
@@ -1263,7 +1268,7 @@ func (this *FMBLockScanner) extractERC20Detail(tx *BlockTransaction, contractAdd
 }
 
 //GetScannedBlockHeader 获取当前已扫区块高度
-func (this *FMBLockScanner) GetScannedBlockHeader() (*openwallet.BlockHeader, error) {
+func (this *ETHBLockScanner) GetScannedBlockHeader() (*openwallet.BlockHeader, error) {
 
 	var (
 		blockHeight uint64 = 0
@@ -1279,9 +1284,9 @@ func (this *FMBLockScanner) GetScannedBlockHeader() (*openwallet.BlockHeader, er
 
 	//如果本地没有记录，查询接口的高度
 	if blockHeight == 0 {
-		blockHeight, err = this.wm.WalletClient.FMGetBlockNumber()
+		blockHeight, err = this.wm.WalletClient.FmGetBlockNumber()
 		if err != nil {
-			this.wm.Log.Errorf("FMGetBlockNumber failed, err=%v", err)
+			this.wm.Log.Errorf("FmGetBlockNumber failed, err=%v", err)
 			return nil, err
 		}
 
@@ -1300,7 +1305,7 @@ func (this *FMBLockScanner) GetScannedBlockHeader() (*openwallet.BlockHeader, er
 }
 
 //GetCurrentBlockHeader 获取当前区块高度
-func (this *FMBLockScanner) GetCurrentBlockHeader() (*openwallet.BlockHeader, error) {
+func (this *ETHBLockScanner) GetCurrentBlockHeader() (*openwallet.BlockHeader, error) {
 
 	var (
 		blockHeight uint64 = 0
@@ -1308,9 +1313,9 @@ func (this *FMBLockScanner) GetCurrentBlockHeader() (*openwallet.BlockHeader, er
 		err         error
 	)
 
-	blockHeight, err = this.wm.WalletClient.FMGetBlockNumber()
+	blockHeight, err = this.wm.WalletClient.FmGetBlockNumber()
 	if err != nil {
-		this.wm.Log.Errorf("FMGetBlockNumber failed, err=%v", err)
+		this.wm.Log.Errorf("FmGetBlockNumber failed, err=%v", err)
 		return nil, err
 	}
 
@@ -1324,9 +1329,9 @@ func (this *FMBLockScanner) GetCurrentBlockHeader() (*openwallet.BlockHeader, er
 	return &openwallet.BlockHeader{Height: blockHeight, Hash: hash}, nil
 }
 
-func (this *FMBLockScanner) GetGlobalMaxBlockHeight() uint64 {
+func (this *ETHBLockScanner) GetGlobalMaxBlockHeight() uint64 {
 
-	maxBlockHeight, err := this.wm.WalletClient.FMGetBlockNumber()
+	maxBlockHeight, err := this.wm.WalletClient.FmGetBlockNumber()
 	if err != nil {
 		this.wm.Log.Errorf("get max height of eth failed, err=%v", err)
 		return 0
@@ -1334,7 +1339,7 @@ func (this *FMBLockScanner) GetGlobalMaxBlockHeight() uint64 {
 	return maxBlockHeight
 }
 
-func (this *FMBLockScanner) SaveUnscannedTransaction(tx *BlockTransaction, reason string) error {
+func (this *ETHBLockScanner) SaveUnscannedTransaction(tx *BlockTransaction, reason string) error {
 
 	unscannedRecord := &openwallet.UnscanRecord{
 		TxID:        tx.Hash,
@@ -1344,9 +1349,8 @@ func (this *FMBLockScanner) SaveUnscannedTransaction(tx *BlockTransaction, reaso
 	}
 	return this.SaveUnscanRecord(unscannedRecord)
 }
-
 //GetLocalNewBlock 获取本地记录的区块高度和hash
-func (this *FMBLockScanner) GetLocalNewBlock() (uint64, string, error) {
+func (this *ETHBLockScanner) GetLocalNewBlock() (uint64, string, error) {
 
 	if this.BlockchainDAI == nil {
 		return 0, "", fmt.Errorf("Blockchain DAI is not setup ")
@@ -1361,7 +1365,8 @@ func (this *FMBLockScanner) GetLocalNewBlock() (uint64, string, error) {
 }
 
 //GetScannedBlockHeight 获取已扫区块高度
-func (this *FMBLockScanner) GetScannedBlockHeight() uint64 {
+func (this *ETHBLockScanner) GetScannedBlockHeight() uint64 {
 	localHeight, _, _ := this.GetLocalNewBlock()
 	return localHeight
 }
+

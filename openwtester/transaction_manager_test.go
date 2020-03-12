@@ -126,7 +126,7 @@ func TestWalletManager_GetAssetsAccountTokenBalance(t *testing.T) {
 		Symbol:   "ETH",
 		Name:     "OCoin",
 		Token:    "OCN",
-		Decimals: 18,
+		Decimals: 8,
 	}
 
 	balance, err := tm.GetAssetsAccountTokenBalance(testApp, walletID, accountID, contract)

@@ -120,24 +120,32 @@ func (this *EthContractDecoder) GetTokenBalanceByAddress(contract openwallet.Sma
 			<-threadControl
 		}()
 
-		//		log.Debugf("in query thread.")
-		balanceConfirmed, err := this.wm.WalletClient.ERC20GetAddressBalance2(address, contract.Address, "latest")
+		balanceConfirmed := new(big.Int)
+
+		////		log.Debugf("in query thread.")
+		//balanceConfirmed, err := this.wm.WalletClient.ERC20GetAddressBalance2(address, contract.Address, "latest")
+		//if err != nil {
+		//	log.Errorf("get address[%v] erc20 token balance failed, err=%v", address, err)
+		//	return
+		//}
+
+		//		log.Debugf("got balanceConfirmed of [%v] :%v", address, balanceConfirmed)
+
+		balances, err := this.wm.Blockscanner.GetBalanceByAddress(address)
 		if err != nil {
 			log.Errorf("get address[%v] erc20 token balance failed, err=%v", address, err)
 			return
 		}
-
-		//		log.Debugf("got balanceConfirmed of [%v] :%v", address, balanceConfirmed)
-
-		balanceAll, err := this.wm.WalletClient.ERC20GetAddressBalance2(address, contract.Address, "pending")
-		if err != nil {
-			log.Errorf("get address[%v] erc20 token balance failed, err=%v", address, err)
-			return
+		balanceAll := new(big.Int)
+		for _, b := range balances {
+			bI := new(big.Int)
+			bI.SetString(b.Balance, 10)
+			balanceAll.Add(balanceAll, bI)
 		}
 
 		//		log.Debugf("got balanceAll of [%v] :%v", address, balanceAll)
 		balanceUnconfirmed := big.NewInt(0)
-		balanceUnconfirmed.Sub(balanceAll, balanceConfirmed)
+		//balanceUnconfirmed.Sub(balanceAll, balanceConfirmed)
 		bstr := common.BigIntToDecimals(balanceAll, int32(contract.Decimals))
 		//bstr, err := ConvertAmountToFloatDecimal(balanceAll.String(), int(contract.Decimals))
 		if err != nil {

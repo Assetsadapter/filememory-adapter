@@ -167,37 +167,6 @@ func (this *Address) CalcHexPrivKey(masterKey *hdkeystore.HDKey) (string, error)
 	return hexutil.Encode(prikey), nil
 }
 
-//type BlockTransaction struct {
-//	Hash             string `json:"hash" storm:"id"`
-//	BlockNumber      string `json:"blockNumber" storm:"index"`
-//	BlockHash        string `json:"blockHash" storm:"index"`
-//	From             string `json:"from"`
-//	To               string `json:"to"`
-//	Gas              string `json:"gas"`
-//	GasPrice         string `json:"gasPrice"`
-//	Value            string `json:"value"`
-//	Data             string `json:"input"`
-//	TransactionIndex string `json:"transactionIndex"`
-//	Timestamp        string `json:"timestamp"`
-//	BlockHeight      uint64 //transaction scanning 的时候对其进行赋值
-//	FilterFunc       openwallet.BlockScanAddressFunc
-//	Status           uint64
-//}
-
-/*
-{
-	"status": true,
-	"nonce": 53,
-	"blockNumber": 1231567,
-	"hash": "FM3ac5510f9f6d26dde534ef3867bfa1aa2406cf8b33210a482a82df66cd4ceda0",
-	"blockHash": "FMd2787a9f3632b54d3fe990b2024abff28e52d3b7f5f821de3c691fbe9d5936c7",
-	"from": "FM10f56deea44971dd2f2aeb29c750241daecf03f8",
-	"to": "FM26b47172761bd9bd460ce4f5cb19ec4bd1fc6f0d",
-	"value": "3000000000",
-	"timestamp": 1582622450
-}
-*/
-
 type BlockTransaction struct {
 	Status      bool   `json:"status"`
 	Nonce       uint   `json:"nonce"`
@@ -218,7 +187,7 @@ func (this *BlockTransaction) GetAmountEthString() (string, error) {
 		log.Errorf("convert amount to big.int failed, err= %v", err)
 		return "0", err
 	}
-	amountVal, err := ConverFmStringToFMDecimal(amount.String())
+	amountVal, err := ConverWeiStringToEthDecimal(amount.String())
 	if err != nil {
 		log.Errorf("convert tx.Amount to eth decimal failed, err=%v", err)
 		return "0", err
@@ -226,27 +195,28 @@ func (this *BlockTransaction) GetAmountEthString() (string, error) {
 	return amountVal.String(), nil
 }
 
-//func (this *BlockTransaction) GetTxFeeEthString() (string, error) {
-//	gasPrice, err := ConvertToBigInt(this.GasPrice, 16)
-//	if err != nil {
-//		log.Errorf("convert tx.GasPrice failed, err= %v", err)
-//		return "", err
-//	}
-//
-//	gas, err := ConvertToBigInt(this.Gas, 16)
-//	if err != nil {
-//		log.Errorf("convert tx.Gas failed, err=%v", err)
-//		return "", err
-//	}
-//	fee := big.NewInt(0)
-//	fee.Mul(gasPrice, gas)
-//	feeprice, err := ConverFmStringToFMDecimal(fee.String())
-//	if err != nil {
-//		log.Errorf("convert fee failed, err=%v", err)
-//		return "", err
-//	}
-//	return feeprice.String(), nil
-//}
+func (this *BlockTransaction) GetTxFeeEthString() (string, error) {
+
+	gasPrice, err := ConvertToBigInt("18", 10)
+	if err != nil {
+		log.Errorf("convert tx.GasPrice failed, err= %v", err)
+		return "", err
+	}
+
+	gas, err := ConvertToBigInt("900000", 10)
+	if err != nil {
+		log.Errorf("convert tx.Gas failed, err=%v", err)
+		return "", err
+	}
+	fee := big.NewInt(0)
+	fee.Mul(gasPrice, gas)
+	feeprice, err := ConverWeiStringToEthDecimal(fee.String())
+	if err != nil {
+		log.Errorf("convert fee failed, err=%v", err)
+		return "", err
+	}
+	return feeprice.String(), nil
+}
 
 type BlockHeader struct {
 	BlockNumber     string `json:"number" storm:"id"`
@@ -385,12 +355,12 @@ func (this *Wallet) DeleteTransactionByHeight(dbPath string, height uint64) erro
 
 	var txs []BlockTransaction
 
-	err = db.Find("BlockNumber", "0x"+strconv.FormatUint(height, 10), &txs)
+	err = db.Find("BlockNumber", "0x"+strconv.FormatUint(height, 16), &txs)
 	if err != nil && err != storm.ErrNotFound {
-		log.Errorf("get transactions from block[%v] failed, err=%v", "0x"+strconv.FormatUint(height, 10), err)
+		log.Errorf("get transactions from block[%v] failed, err=%v", "0x"+strconv.FormatUint(height, 16), err)
 		return err
 	} else if err == storm.ErrNotFound {
-		log.Infof("no transactions found in block[%v] ", "0x"+strconv.FormatUint(height, 10))
+		log.Infof("no transactions found in block[%v] ", "0x"+strconv.FormatUint(height, 16))
 		return nil
 	}
 

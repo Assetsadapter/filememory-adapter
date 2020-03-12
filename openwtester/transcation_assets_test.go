@@ -79,7 +79,7 @@ func testCreateSummaryTransactionStep(
 
 func testSignTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTransaction) (*openwallet.RawTransaction, error) {
 
-	_, err := tm.SignTransaction(testApp, rawTx.Account.WalletID, rawTx.Account.AccountID, "12345678", rawTx)
+	_, err := tm.SignTransaction(testApp, rawTx.Account.WalletID, rawTx.Account.AccountID, "abc123", rawTx)
 	if err != nil {
 		log.Error("SignTransaction failed, unexpected error:", err)
 		return nil, err
@@ -121,17 +121,24 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer_ETH(t *testing.T) {
 
 	addrs := []string{
-		"FM9CbCcC684596B187da75BCa9996442c301e0f818",
+		"0x50c63c8abcaf05f97aae7463fee44f22ce5eb6ac",
+		"0x5a2b594b0137fa054f8a47b3d8b9ff54ba878035",
+		"0x615fa04140e3c7c1159e8005733d1add0b6608f1",
+		//"0x8fd9803aeade363d237628f54ca24d6a705983fb",
+		//"0xa5d713fccf57c81cee67621729af9946565b4c74",
+		//"0xff3738ba70b97bcc907d6fff2e6c4e6f34f99dab",
 	}
 
 	tm := testInitWalletManager()
-	walletID := "WN5yRYu6zzAc3MsxpoemD1EPShaLMUYtoN"
-	accountID := "92hwNBKK3bxLVjvDG3V6oTRWKHkMArRh48fxYx7B4eyg"
+	walletID := "WBGYxZ6yEX582Mx8mGvygXevdLVc7NQnLM"
+	accountID := "3csEgf2TcxwNeoFSTsePXFVmzcyNhHAS49jsTv99n1Nv"
+	//accountID := "AfF8aoW2M2bQwVc2aJ38cCGEcnXF3WCsma1Day7zGA4C"
+	//to := "0xd35f9ea14d063af9b3567064fab567275b09f03d"
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.0001", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.01", "", nil)
 		if err != nil {
 			return
 		}
@@ -167,7 +174,7 @@ func TestTransfer_ERC20(t *testing.T) {
 		Symbol:   "ETH",
 		Name:     "OCoin",
 		Token:    "OCN",
-		Decimals: 18,
+		Decimals: 8,
 	}
 
 	//contract := openwallet.SmartContract{
@@ -249,9 +256,9 @@ func TestSummary_ETH(t *testing.T) {
 
 func TestSummary_ERC20(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WBGYxZ6yEX582Mx8mGvygXevdLVc7NQnLM"
-	accountID := "AfF8aoW2M2bQwVc2aJ38cCGEcnXF3WCsma1Day7zGA4C"
-	summaryAddress := "0xd35f9ea14d063af9b3567064fab567275b09f03d"
+	walletID := "VybH3DzVH1U6ZnSsARb1MDz7X6gYQWBC56"
+	accountID := "23ySJ68cPfQyarfEh1xmk7HRktXnGua9Qwpm6p27woba"
+	summaryAddress := "FM9CbCcC684596B187da75BCa9996442c301e0f818"
 
 	feesSupport := openwallet.FeesSupportAccount{
 		AccountID: "3csEgf2TcxwNeoFSTsePXFVmzcyNhHAS49jsTv99n1Nv",
@@ -260,11 +267,11 @@ func TestSummary_ERC20(t *testing.T) {
 	}
 
 	contract := openwallet.SmartContract{
-		Address:  "4092678e4E78230F46A1534C0fbc8fA39780892B",
-		Symbol:   "ETH",
-		Name:     "OCoin",
-		Token:    "OCN",
-		Decimals: 18,
+		Address:  "0xf9195d69d73ce3182b82750fc6c0ac284a41c87a",
+		Symbol:   "FM",
+		Name:     "FM-token",
+		Token:    "FM",
+		Decimals: 8,
 	}
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)

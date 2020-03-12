@@ -35,16 +35,15 @@ const (
 	ERC20TOKEN_DB      = "erc20Token.db"
 )
 
-const (
-	TOKEN_KEY      = "G^h#9f&P@u3[r%H$6a@Mc$5"
-	API_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyaC1m8AyGYb84PeciEWYooWAoPwTzBTWWwkOWNIPbrOxygQQpveEJ9aEnr13sMb05RY3FSGNENZaxQKUB2JN/CD/o+5tI43kQA8iAsaKEdzwBpzdvwFiO+fNi3PW2o0K1QXCcUePVgnTdBzzuHrF27GV955qKEIUEjzpw3wflUNfoXe4enHVCtsWhZ/Cwu/983UChp8qBNhVdc0eqasrK6QTwDASKnYH9b2uueZUzlbUxG8Vj2c878K/pGFtwh+ZVkdVxDIarsOvRLEORdTOAN7nXGHlB0qRoJB0XTcNvmtbRnbvJ/9s0V0QZqHOL88yAyImmo4bf4vFn6plFl8DQIDAQ"
-)
+const TOKEN_KEY string = "G^h#9f&P@u3[r%H$6a@Mc$5"
 
 const (
-	Symbol       = "FM"
-	MasterKey    = "FileMemory seed"
-	TIME_POSTFIX = "20060102150405"
-	CurveType    = owcrypt.ECC_CURVE_SECP256K1
+	Symbol           = "FM"
+	MasterKey        = "FileMemory seed"
+	TIME_POSTFIX     = "20060102150405"
+	CurveType        = owcrypt.ECC_CURVE_SECP256K1
+	Decimal          = 8
+	CONTRACT_ADDRESS = "0xf9195d69d73ce3182b82750fc6c0ac284a41c87a"
 
 	//	CHAIN_ID     = 922337203685 //12
 )
@@ -120,7 +119,9 @@ type WalletConfig struct {
 	//数据目录
 	DataDir string
 	//固定gasLimit值
-	FixGasLimit *big.Int
+	GasLimit *big.Int
+	// 固定 gasPrice 值
+	GasPrice *big.Int
 }
 
 func makeEthDefaultConfig(ConfigFilePath string) string {
@@ -228,9 +229,12 @@ func (this *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	client := &Client{BaseURL: this.Config.ServerAPI, Debug: false}
 	this.WalletClient = client
 	this.Config.DataDir = c.String("dataDir")
-	fixGasLimit := c.String("fixGasLimit")
-	this.Config.FixGasLimit = new(big.Int)
-	this.Config.FixGasLimit.SetString(fixGasLimit, 10)
+	GasLimit := c.String("GasLimit")
+	this.Config.GasLimit = new(big.Int)
+	this.Config.GasLimit.SetString(GasLimit, 10)
+	gasPrice := c.String("GasPrice")
+	this.Config.GasPrice = new(big.Int)
+	this.Config.GasPrice.SetString(gasPrice, 10)
 
 	//数据文件夹
 	this.Config.makeDataDir()

@@ -44,21 +44,10 @@ func TestWalletManager_ethGetTransactionReceipt(t *testing.T) {
 
 func TestWalletManager_EthGetBlockNumber(t *testing.T) {
 	wm := testNewWalletManager()
-	maxBlockHeight, err := wm.WalletClient.FMGetBlockNumber()
+	maxBlockHeight, err := wm.WalletClient.FmGetBlockNumber()
 	if err != nil {
-		t.Errorf("FMGetBlockNumber failed, err=%v", err)
+		t.Errorf("FmGetBlockNumber failed, err=%v", err)
 		return
 	}
 	log.Infof("maxBlockHeight: %v", maxBlockHeight)
-}
-
-func TestWalletManager_ScannerBlock(t *testing.T) {
-	wm := testNewWalletManager()
-	blockHeight := uint64(1278460)
-	err := wm.GetBlockScanner().ScanBlock(blockHeight)
-	if err != nil {
-		t.Errorf("FMScannerBlock fialed, err=%v", err)
-		return
-	}
-	log.Infof("FMScannerBlock success, %d", blockHeight)
 }
