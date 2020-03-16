@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/blocktree/ethereum-adapter/filememory"
+	"github.com/Assetsadapter/filememory-adapter/filememory"
 )
 
-func main()  {
+func main() {
 	fmt.Printf("%s build successfully", filememory.Symbol)
 }

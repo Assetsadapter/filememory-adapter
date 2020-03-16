@@ -399,12 +399,12 @@ func (this *ETHBLockScanner) UpdateTxByReceipt(tx *BlockTransaction) (map[string
 	}
 
 	/*
-	20200310
-	tx.Gas = receipt.GasUsed
-	tx.Status, err = ConvertToUint64(receipt.Status, 16)
-	if err != nil {
-		return nil, err
-	}*/
+		20200310
+		tx.Gas = receipt.GasUsed
+		tx.Status, err = ConvertToUint64(receipt.Status, 16)
+		if err != nil {
+			return nil, err
+		}*/
 
 	// transEvent := receipt.ParseTransferEvent()
 	// if transEvent == nil {
@@ -502,7 +502,7 @@ func (this *ETHBLockScanner) GetBalanceByAddress(address ...string) ([]*openwall
 		Balance *openwallet.Balance
 	}
 
-	threadControl := make(chan int, 20)
+	threadControl := make(chan int, 5)
 	defer close(threadControl)
 	resultChan := make(chan *addressBalance, 1024)
 	defer close(resultChan)
@@ -530,13 +530,13 @@ func (this *ETHBLockScanner) GetBalanceByAddress(address ...string) ([]*openwall
 			<-threadControl
 		}()
 
-		balanceConfirmed, err := this.wm.WalletClient.GetAddrBalance2(AppendFmToAddress(addr.Address), "latest")
+		balanceConfirmed, err := this.wm.WalletClient.GetAddrBalance2(ReplaceFmToAddress(addr.Address), "latest")
 		if err != nil {
 			this.wm.Log.Error("get address[", addr.Address, "] balance failed, err=", err)
 			return
 		}
 
-		balanceAll, err := this.wm.WalletClient.GetAddrBalance2(AppendFmToAddress(addr.Address), "pending")
+		balanceAll, err := this.wm.WalletClient.GetAddrBalance2(ReplaceFmToAddress(addr.Address), "pending")
 		if err != nil {
 			//this.wm.Log.Errorf("get address[%v] erc20 token balance failed, err=%v", address, err)
 			//return
@@ -579,6 +579,7 @@ func (this *ETHBLockScanner) GetBalanceByAddress(address ...string) ([]*openwall
 			Address: address[i],
 			Index:   uint64(i),
 		}
+		fmt.Printf(fmt.Sprintf("get balance : %s \n", address[i]))
 		go query(addrbl)
 	}
 
@@ -926,7 +927,7 @@ func (this *ETHBLockScanner) TransactionScanning(tx *BlockTransaction) (*Extract
 		}, nil
 	}
 
-	blockHeight :=tx.BlockNumber
+	blockHeight := tx.BlockNumber
 
 	tx.BlockHeight = blockHeight
 	var result = ExtractResult{
@@ -1349,6 +1350,7 @@ func (this *ETHBLockScanner) SaveUnscannedTransaction(tx *BlockTransaction, reas
 	}
 	return this.SaveUnscanRecord(unscannedRecord)
 }
+
 //GetLocalNewBlock 获取本地记录的区块高度和hash
 func (this *ETHBLockScanner) GetLocalNewBlock() (uint64, string, error) {
 
@@ -1369,4 +1371,3 @@ func (this *ETHBLockScanner) GetScannedBlockHeight() uint64 {
 	localHeight, _, _ := this.GetLocalNewBlock()
 	return localHeight
 }
-

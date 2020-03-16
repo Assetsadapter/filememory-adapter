@@ -492,9 +492,6 @@ func (this *Client) ERC20GetAddressBalance(address string, contractAddr string) 
 }
 
 func (this *Client) GetAddrBalance2(address string, sign string) (*big.Int, error) {
-	if sign != "latest" && sign != "pending" {
-		return nil, errors.New("unknown sign was put through.")
-	}
 
 	params := make(map[string]interface{})
 	callTime := time.Now().Unix()
