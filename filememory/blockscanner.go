@@ -502,7 +502,7 @@ func (this *ETHBLockScanner) GetBalanceByAddress(address ...string) ([]*openwall
 		Balance *openwallet.Balance
 	}
 
-	threadControl := make(chan int, 5)
+	threadControl := make(chan int, this.wm.Config.SumThreadControl)
 	defer close(threadControl)
 	resultChan := make(chan *addressBalance, 1024)
 	defer close(resultChan)

@@ -122,6 +122,8 @@ type WalletConfig struct {
 	GasLimit *big.Int
 	// 固定 gasPrice 值
 	GasPrice *big.Int
+	// 汇总并发控制
+	SumThreadControl int
 }
 
 func makeEthDefaultConfig(ConfigFilePath string) string {
@@ -235,6 +237,7 @@ func (this *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	gasPrice := c.String("GasPrice")
 	this.Config.GasPrice = new(big.Int)
 	this.Config.GasPrice.SetString(gasPrice, 10)
+	this.Config.SumThreadControl = c.DefaultInt("SumThreadControl", 5)
 
 	//数据文件夹
 	this.Config.makeDataDir()
