@@ -16,16 +16,16 @@ openwtester包下的测试用例已经集成了openwallet钱包体系，创建co
 isScan = false
 
 # wallet api url
-ServerAPI = "https://chain.fmchain.cc/exchange/"
+ServerAPI = "chain-node.com"
 
 # block chain ID
-ChainID = 39482
+ChainID = 1
 
 # gas limit
-GasLimit = 500000
+GasLimit = 100000
 
 # gas price
-GasPrice = 18
+GasPrice = 12
 
 # Summery transaction get addresses balance concurrency channel control, default value is 5;
 SumThreadControl = 1
