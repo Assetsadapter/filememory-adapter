@@ -16,7 +16,10 @@
 package filememory
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"testing"
 	"time"
 )
@@ -51,7 +54,7 @@ func TestFmGetBlockSpecByBlockNum2(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	tw := Client{
-		BaseURL: "https://chain.ipfs-spacetime.com/exchange/",
+		BaseURL: "https://chain.fmchain.cc/exchange/",
 		Debug:   true,
 	}
 
@@ -66,7 +69,7 @@ func TestGetBalance(t *testing.T) {
 
 func TestFmGetTransactionCount(t *testing.T) {
 	tw := Client{
-		BaseURL: "https://chain.ipfs-spacetime.com/exchange/",
+		BaseURL: "https://chain.fmchain.cc/exchange/",
 		Debug:   true,
 	}
 
@@ -91,14 +94,33 @@ func TestReplaceFmToAddress(t *testing.T) {
 	fmt.Printf("result : %s", result)
 }
 
-//func TestCreateTxReplaceFmTo0x(t *testing.T) {
-//	addr := "FMd6cc76c51c218c286c783d98e42860afa07bdc70"
-//	result := CreateTxReplaceFmTo0x(addr)
-//	fmt.Printf("address is : %s", result)
-//}
-//
-//func TestFixFmDecimalLen(t *testing.T) {
-//	amount := "12120.00000001123123"
-//	result := FixFmDecimalLen(amount)
-//	fmt.Printf("result : %s", result)
-//}
+func TestClient_FmGetFee(t *testing.T) {
+	tw := Client{
+		BaseURL: "https://chain.fmchain.cc/exchange/",
+		Debug:   true,
+	}
+
+	f, err := os.Open("./address/address.txt")
+	if err != nil {
+		t.Errorf("Open file error : %s", err.Error())
+	}
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			t.Errorf("Close file error : %s", err.Error())
+		}
+	}()
+
+	read := bufio.NewReader(f)
+	for {
+		content, _, flag := read.ReadLine()
+		if flag == io.EOF {
+			break
+		}
+		err = tw.FmGetFee(string(content))
+		if err != nil {
+			fmt.Printf("[ %s ] Get fee error : %s \n", string(content), err.Error())
+		}
+	}
+
+}

@@ -358,7 +358,7 @@ func (this *Client) fmGetBlockSpecByBlockNum2(blockNum uint64, showTransactionSp
 	return &fmBlock, nil
 }
 
-func (this *Client) EthGetBlockSpecByBlockNum(blockNum uint64, showTransactionSpec bool) (*FMBlock, error) {
+func (this *Client) FMGetBlockSpecByBlockNum(blockNum uint64, showTransactionSpec bool) (*FMBlock, error) {
 	return this.fmGetBlockSpecByBlockNum2(blockNum, showTransactionSpec)
 }
 
@@ -759,7 +759,7 @@ func (this *Client) fmSendRawTransaction(signedTx string) (string, error) {
 		log.Errorf("sendRawTransaction result type error")
 		return "", errors.New("sendRawTransaction result type error")
 	}
-	return result.String(), nil
+	return hash.String(), nil
 }
 
 func (this *Client) ethSendTransaction(paraMap map[string]interface{}) (string, error) {

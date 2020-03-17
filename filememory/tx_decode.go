@@ -820,6 +820,7 @@ func (this *EthTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwa
 
 		txid, err := this.wm.WalletClient.fmSendRawTransaction(ethcommon.ToHex(rawTxPara))
 		if err != nil {
+			// GAS 缺失,请求接口获取 GAS
 			if err.Error() == "[10001]Returned error: insufficient funds for gas * price + value" {
 				this.wm.WalletClient.FmGetFee(txStatis.Address)
 			}
@@ -831,6 +832,9 @@ func (this *EthTransactionDecoder) SubmitErc20TokenRawTransaction(wrapper openwa
 		rawTx.IsSubmit = true
 		txStatis.UpdateTime()
 		(*txStatis.TransactionCount)++
+
+		// 交易发送成功之后提起一次获取GAS的请求.
+		this.wm.WalletClient.FmGetFee(txStatis.Address)
 
 		this.wm.Log.Debug("transaction[", txid, "] has been sent out.")
 		return nil

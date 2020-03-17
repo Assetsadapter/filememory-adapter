@@ -22,10 +22,10 @@ ServerAPI = "chain-node.com"
 ChainID = 1
 
 # gas limit
-GasLimit = 100000
+GasLimit = 50000
 
 # gas price
-GasPrice = 12
+GasPrice = 18
 
 # Summery transaction get addresses balance concurrency channel control, default value is 5;
 SumThreadControl = 1

@@ -118,27 +118,29 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 	return rawTx, nil
 }
 
-func TestTransfer_ETH(t *testing.T) {
+func TestTransfer_FM(t *testing.T) {
 
 	addrs := []string{
-		"0x50c63c8abcaf05f97aae7463fee44f22ce5eb6ac",
-		"0x5a2b594b0137fa054f8a47b3d8b9ff54ba878035",
-		"0x615fa04140e3c7c1159e8005733d1add0b6608f1",
-		//"0x8fd9803aeade363d237628f54ca24d6a705983fb",
-		//"0xa5d713fccf57c81cee67621729af9946565b4c74",
-		//"0xff3738ba70b97bcc907d6fff2e6c4e6f34f99dab",
+		"FMf22f00662ca0be89599cb6c65b1a21a239f6d4d5",
+		"FM73cb0a5c22a67af489e4c610c76108f5d6481b17",
+		"FM52264cdbb4f9b3e3c7a03adaf169dd7610b62ee4",
+		"FMe4180f2d0352a4fd38a8eec0bf1a1956ea3ce588",
+		"FM2ee7910d26723fd8404892622c97ee15fc834880",
+		"FM79d4ce6705a6173f28f7f803765f374373ab1cf1",
+		"FM5fdc7fdc3916a0ea35ef4df911f3fb9bed3aeee4",
+		"FM4a925d040d963a7df548f5cd8edc27f55afb7c0c",
 	}
 
 	tm := testInitWalletManager()
-	walletID := "WBGYxZ6yEX582Mx8mGvygXevdLVc7NQnLM"
-	accountID := "3csEgf2TcxwNeoFSTsePXFVmzcyNhHAS49jsTv99n1Nv"
+	walletID := "VybH3DzVH1U6ZnSsARb1MDz7X6gYQWBC56"
+	accountID := "9ft1xWnz8kVrNTfmu2ZiM5rGX9X4Q918ogfM1JkCbhfy"
 	//accountID := "AfF8aoW2M2bQwVc2aJ38cCGEcnXF3WCsma1Day7zGA4C"
 	//to := "0xd35f9ea14d063af9b3567064fab567275b09f03d"
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.01", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.000001", "", nil)
 		if err != nil {
 			return
 		}
