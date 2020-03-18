@@ -1131,6 +1131,7 @@ func (this *FMBLockScanner) extractETHTransaction(tx *BlockTransaction, isTokenT
 			Status:      status,
 			Reason:      reason,
 			TxType:      txType,
+			Fees:        "0",
 		}
 
 		wxID := openwallet.GenTransactionWxID(tx)
